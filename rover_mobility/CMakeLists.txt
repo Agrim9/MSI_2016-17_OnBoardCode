@@ -6,6 +6,7 @@ project(rover_mobility)
 ## is used, also find other catkin packages
 find_package(catkin REQUIRED COMPONENTS
   roscpp
+  rospy
   std_msgs
 )
 
@@ -130,7 +131,7 @@ include_directories(
 include_directories(include ${catkin_INCLUDE_DIRS})
 
 add_executable(mobility_driver src/mobility_driver.cpp)
-add_executable(joystick_run src/joystick_run.cpp)
+
 
 ## Add cmake target dependencies of the executable
 ## same as for the library above
@@ -141,9 +142,6 @@ target_link_libraries(mobility_driver
   ${catkin_LIBRARIES}
 )
 
-target_link_libraries(joystick_run
-  ${catkin_LIBRARIES}
-)
 
 
 #############

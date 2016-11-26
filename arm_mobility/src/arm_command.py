@@ -11,7 +11,9 @@ from std_msgs.msg import Float64MultiArray
 import time
 import matplotlib.pyplot as plt
 import numpy as np
+import RPi.GPIO as GPIO
 from scipy.interpolate import spline
+from std_msgs.msg import String
 
 from serial.serialutil import SerialException as SerialException
 
@@ -22,24 +24,25 @@ val2_at_t = []
 tval2_at_t = []
 plt.ion()
 plt.show()
+VelPin1 = 18
 MotorHigh = 17
 MotorLow = 27
 SPI_CLK=18
 SPI_MISO=23
 SPI_MOSI=24
 SPI_CS=25
-
+GPIO.setmode(GPIO.BCM)
 GPIO.setup(MotorHigh,GPIO.OUT)
 GPIO.setup(MotorLow,GPIO.OUT)
 GPIO.setup(SPI_MOSI, GPIO.OUT)
 GPIO.setup(SPI_MISO, GPIO.IN)
-GPIO.setup(SPI_CLK, GPO.OUT)
-GPIO.setup(SPI_CS, GPO.OUT)
+GPIO.setup(SPI_CLK, GPIO.OUT)
+GPIO.setup(SPI_CS, GPIO.OUT)
 
-#10k pot connected to adc #0
+#10k pot connected to adc #1
 adc_used=0
 
-tolerance=5 #we change readings only when pot moves 5 counts
+tolerance=2 #we change readings only when pot moves 5 counts
 
 #Analog Pin Setup
 
@@ -62,7 +65,7 @@ class ArmMotor:
         self.qpps1 = qpps1
         self.deadzone1 = deadzone1
         self.int_windout1=int_windout1
-        self.kon1 = kon1
+        #self.kon1 = kon1
         self.sample_time = sample_time
         self.last_time = 0.00
         self.last_error1 = 0.00
@@ -74,6 +77,7 @@ class ArmMotor:
         self.enc1Pos=0.00
         self.finalEnc1Val=0.00
         self.lenplt1=0.00
+        self.kon1=0.00
 
     def update(self):
     	self.current_time = time.time()
@@ -82,7 +86,8 @@ class ArmMotor:
 		#PID
         if (delta_time >= self.sample_time):
             time_vec.append(self.current_time)
-            self.enc1Pos = self.claw.ReadEncM1()[1]
+            #self.enc1Pos = self.claw.ReadEncM1()[1]
+            self.enc1Pos = 0
             self.finalEnc1Val = int(self.qpps1*self.targetAngleM1)
             self.diff1 = self.finalEnc1Val - self.enc1Pos  #Error in 1
             self.delta_error1 = self.diff1 - self.last_error1
@@ -102,14 +107,14 @@ class ArmMotor:
                 velM1 = velM1 + self.kon1
                 val1_at_t.append(self.enc1Pos)
                 tval1_at_t.append(self.targetAngleM1)
-                self.claw.ForwardM1(min(255, velM1))
+                #self.claw.ForwardM1(min(255, velM1))
             elif self.enc1Pos > (self.finalEnc1Val + self.deadzone1):
                 velM1 = velM1 - self.kon1
                 val1_at_t.append(self.enc1Pos)
                 tval1_at_t.append(self.targetAngleM1)
-                self.claw.BackwardM1(min(255, -velM1))
-            else:
-                self.claw.ForwardM1(0)
+                #self.claw.BackwardM1(min(255, -velM1))
+            #else:
+                #self.claw.ForwardM1(0)
 
     #    rospy.loginfo("%s: %d %d %d %d", self.name, self.diff1, self.targetAngleM1,self.claw.ReadEncM1()[1], velM1)
     #    rospy.loginfo("%s: %d %d %d %d", self.name, self.diff2, self.targetAngleM2,self.claw.ReadEncM2()[1], velM2)
@@ -131,7 +136,7 @@ def Read_ADC(adc_no, clk, mosi, miso, cs):
 
     ##### Select proper ADC out of 8 #####
     for i in range(5):
-        if (ADC_sel & ox80):
+        if (ADC_sel & 0x80):
             GPIO.output(mosi,True)
         else:
             GPIO.output(mosi,False)
@@ -143,11 +148,11 @@ def Read_ADC(adc_no, clk, mosi, miso, cs):
     #ADC now selected, read value from it
     #read one empty bit, one null bit and 10 ADC bits
     for i in range(12):
-            GPIO.output(clk, True)
-            GPIO.output(clk, False)
-            ADC_out<<=1
-            if(GPIO.input(miso)):
-                ADC_out |= 0x01
+        GPIO.output(clk, True)
+        GPIO.output(clk, False)
+        ADC_out<<=1
+        if(GPIO.input(miso)):
+            ADC_out |= 0x01
     GPIO.output(cs, True) #Deselect the chip by stating CS bar as high
     ADC_out >>=1 #First bit is null, drop it
     return ADC_out
@@ -156,8 +161,7 @@ if __name__ == "__main__":
 
     rospy.init_node("Motor_node")
     rospy.loginfo("Starting Motor node")
-    pub = rospy.Publisher('ADC Val', String, queue_size=10)
-    rospy.init_node('adc_val', anonymous=True)
+    pub = rospy.Publisher('ADC_Val', String, queue_size=10)
     rospy.loginfo("I'm here")
 
     r_time = rospy.Rate(1)
@@ -167,15 +171,20 @@ if __name__ == "__main__":
     r_time = rospy.Rate(5)
 
     old_val=0
+
     while not rospy.is_shutdown():
+        
         pot_changed=False #initial assumption
         new_val=Read_ADC(adc_used, SPI_CLK, SPI_MOSI, SPI_MISO, SPI_CS)
         diff_val=new_val-old_val
+        pub.publish("Pot Val : " +str(new_val))
         if(diff_val>tolerance):
             pot_changed=True
         if(pot_changed):
-            ArmMotor1.targetAngleM1=new_val*360/1024 #Mapping 360 to 3.3 voltage
+            ArmMotor1.targetAngleM1=new_val*360/31 #Mapping 360 to 3.3 voltage
             ArmMotor1.update()
-            pub.publish("Set Target Angle to " + str(ArmMotor1.targetAngleM1))
-
+            #pub.publish("Set Target Angle to " + str(ArmMotor1.targetAngleM1))
+            rospy.loginfo("Set Target Angle to " + str(ArmMotor1.targetAngleM1))
+        old_val=new_val
         r_time.sleep()
+GPIO.cleanup()
