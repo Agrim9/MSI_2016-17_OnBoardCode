@@ -15,7 +15,7 @@ from serial.serialutil import SerialException as SerialException
 
 class SteerClaw:
 
-	def __init__(self, address, dev_name, baud_rate, name, kp1 = 0.35, kp2 = 0.35, qpps1 = 5.34, qpps2 = 5.34, deadzone1 = 50, deadzone2 = 50, kon1 = 10, kon2 = 10, ovf = 1922):
+	def __init__(self, address, dev_name, baud_rate, kp1 = 0.35, kp2 = 0.35, qpps1 = 5.34, qpps2 = 5.34, deadzone1 = 50, deadzone2 = 50, kon1 = 10, kon2 = 10, ovf = 1922):
 		self.ERRORS = {0x0000: (diagnostic_msgs.msg.DiagnosticStatus.OK, "Normal"),
 		0x0001: (diagnostic_msgs.msg.DiagnosticStatus.WARN, "M1 over current"),
 		0x0002: (diagnostic_msgs.msg.DiagnosticStatus.WARN, "M2 over current"),
@@ -33,9 +33,8 @@ class SteerClaw:
 		0x2000: (diagnostic_msgs.msg.DiagnosticStatus.WARN, "Temperature2"),
 		0x4000: (diagnostic_msgs.msg.DiagnosticStatus.OK, "M1 home"),
 		0x8000: (diagnostic_msgs.msg.DiagnosticStatus.OK, "M2 home")}
-
+		
 		self.claw = RoboClaw(address, dev_name, baud_rate)
-		self.name = name
 		self.claw.ResetEncoders()
 		self.targetAngleM1 = 0
 		self.targetAngleM2 = 0
@@ -50,8 +49,7 @@ class SteerClaw:
 		self.ovf = ovf
 
 	def update(self):
-
-		enc1Pos = self.claw.ReadEncM1()[1] % self.ovf
+		enc1Pos = self.claw.ReadEncM1()[1]
 		finalEnc1Val = int(self.qpps1*self.targetAngleM1)
 		diff1 = finalEnc1Val - enc1Pos
 		velM1 = int(self.kp1*diff1)
@@ -76,12 +74,11 @@ class SteerClaw:
 			self.claw.BackwardM2(min(255, -velM2))
 		else:
 			self.claw.ForwardM2(0)
-
-		rospy.loginfo("%s: %d %d %d %d", self.name, diff1, self.targetAngleM1, self.claw.ReadEncM1()[1], velM1)
-		rospy.loginfo("%s: %d %d %d %d", self.name, diff2, self.targetAngleM2, self.claw.ReadEncM2()[1], velM2)
+		rospy.loginfo("%d %d %d %d", diff1, self.targetAngleM1, self.claw.ReadEncM1()[1], velM1)
+	
 
 def steer_callback(inp):
-
+	
 	roboclaw1.targetAngleM1 = inp.data[6]
 	roboclaw1.targetAngleM2 = inp.data[7]
 	roboclaw2.targetAngleM1 = inp.data[8]
@@ -89,44 +86,37 @@ def steer_callback(inp):
 
 
 if __name__ == "__main__":
-
+	
 	rospy.init_node("roboclaw_node")
 	rospy.loginfo("Starting steer node")
 
 	rospy.Subscriber("/rover/ard_directives", Float64MultiArray, steer_callback)
-	rospy.loginfo("I'm here")
-
+	
 	r_time = rospy.Rate(1)
 	for i in range(20):
 		try:
-			roboclaw1 = SteerClaw(0x80, "/dev/roboclaw1", 9600, "RightClaw")
+			roboclaw1 = SteerClaw(0x80, "/dev/ttyACM0", 9600)
 		except SerialException:
 			rospy.logwarn("Could not connect to RoboClaw1, retrying...")
 			r_time.sleep()
-	rospy.loginfo("Connected to RoboClaw1")
-
+	rospy.loginfo("Connected to RC")
+	
 	for i in range(20):
 		try:
-			roboclaw2 = SteerClaw(0x81, "/dev/roboclaw2", 9600, "LeftClaw")
+			roboclaw2 = SteerClaw(0x81, "/dev/ttyACM1", 9600)
 		except SerialException:
 			rospy.logwarn("Could not connect to RoboClaw2, retrying...")
 			r_time.sleep()
-	rospy.loginfo("Connected to RoboClaw2")
-
+	
 	r_time = rospy.Rate(5)
 	roboclaw1.claw.ForwardM1(0)
 	roboclaw1.claw.ForwardM2(0)
 	roboclaw2.claw.ForwardM1(0)
 	roboclaw2.claw.ForwardM2(0)
-
-	roboclaw1.targetAngleM1 = 45
-	#roboclaw1.targetAngleM2 = inp.data[7]
-	#roboclaw2.targetAngleM1 = inp.data[8]
-	#roboclaw2.targetAngleM2 = inp.data[9]
-
+	
 	while not rospy.is_shutdown():
 		roboclaw1.update()
-		#roboclaw2.update()
+		roboclaw2.update()
 		r_time.sleep()
 
 	roboclaw1.claw.ForwardM1(0)
