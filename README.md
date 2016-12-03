@@ -14,8 +14,11 @@ Roboclaw2 is the "LeftClaw" and should be connected to port 4 of USB hub <br/>
 The config files can be found in /etc/udev/rules.d/72-micro-devel.rules <br/>
 Checking whether the appropriate roboclaw is connected, run this command : <br/>
    `udevadm info -a -n /dev/roboclaw1 | grep 'KERNEL'` to know the tty number <br/>
+   `ls -lF /dev | grep roboclaw*` <br/> 
+  <br/>
 Checking whether it's roboclaw on ttyACM1, run this command : <br/>
    `udevadm info -a -n /dev/ttyACM0 | grep '{product}'`<br/>
+<br/>
 
 ## Roscore doesn't work (1 GB log file error)
 
