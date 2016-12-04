@@ -16,8 +16,6 @@ from scipy.interpolate import spline
 
 from serial.serialutil import SerialException as SerialException
 
-hb, = plt.plot([], [],'-b')
-#hr, = plt.plot([], [],'-r')
 time_vec = []
 val1_at_t = []
 tval1_at_t = []
@@ -27,7 +25,7 @@ plt.ion()
 plt.show()
 class SteerClaw:
 
-    def __init__(self, address, dev_name, baud_rate, name, kp1 = 0.35, kp2 = 0.35,ki1=0.3,ki2=0.3,kd1=0.01,kd2=0.01,int_windout1=7,int_windout2=7, qpps1 = 5.34, qpps2 = 5.34, deadzone1 = 100, deadzone2 = 100, kon1 = 10, kon2 = 10, sample_time=0.01, last_time=0.00, current_time=0.00):
+    def __init__(self, address, dev_name, baud_rate, name, kp1 = 0.12, kp2 = 0.12,ki1=0.08,ki2=0.08,kd1=0.06,kd2=0.06,int_windout1=50,int_windout2=50, qpps1 = 5.34, qpps2 = 5.34, deadzone1 = 20, deadzone2 = 20, kon1 = 0, kon2 = 0, sample_time=0.1, last_time=0.00, current_time=0.00):
 		self.ERRORS = {0x0000: (diagnostic_msgs.msg.DiagnosticStatus.OK, "Normal"),
 		0x0001: (diagnostic_msgs.msg.DiagnosticStatus.WARN, "M1 over current"),
 		0x0002: (diagnostic_msgs.msg.DiagnosticStatus.WARN, "M2 over current"),
@@ -88,26 +86,22 @@ class SteerClaw:
 
     def update(self):
     	self.current_time = time.time()
-        time_vec.append(self.current_time)
         delta_time = self.current_time - self.last_time
 		#----------------------------------------------------
 		#Roboclaw1
-        self.enc1Pos = self.claw.ReadEncM1()[1]
-        self.finalEnc1Val = int(self.qpps1*self.targetAngleM1)
-        self.diff1 = self.finalEnc1Val - self.enc1Pos  #Error in 1
-        self.delta_error1 = self.diff1 - self.last_error1
         if (delta_time >= self.sample_time):
+            time_vec.append(self.current_time)
+            self.enc1Pos = self.claw.ReadEncM1()[1]
+            self.finalEnc1Val = int(self.qpps1*self.targetAngleM1)
+            self.diff1 = self.finalEnc1Val - self.enc1Pos  #Error in 1
+            self.delta_error1 = self.diff1 - self.last_error1
             self.PTerm1 = self.diff1 #Pterm
             self.ITerm1+=self.diff1*delta_time
             if (self.ITerm1 < -self.int_windout1):
                 self.ITerm1 = -self.int_windout1
             elif (self.ITerm1 > self.int_windout1):
                 self.ITerm1 = self.int_windout1
-
-            self.DTerm1 = 0.0
-            if delta_time > 0:
-                self.DTerm1 = self.delta_error1 / delta_time
-
+            self.DTerm1 = self.delta_error1 / delta_time
             # Remember last time and last error for next calculation
             self.last_error1 = self.diff1
 
@@ -115,12 +109,13 @@ class SteerClaw:
 
             if self.enc1Pos < (self.finalEnc1Val - self.deadzone1):
                 velM1 = velM1 + self.kon1
-                val1_at_t.append(velM1)
+                val1_at_t.append(self.enc1Pos)
                 tval1_at_t.append(self.targetAngleM1)
                 self.claw.ForwardM1(min(255, velM1))
             elif self.enc1Pos > (self.finalEnc1Val + self.deadzone1):
                 velM1 = velM1 - self.kon1
-                val1_at_t.append(velM1)
+                val1_at_t.append(self.enc1Pos)
+                tval1_at_t.append(self.targetAngleM1)
                 self.claw.BackwardM1(min(255, -velM1))
             else:
                 self.claw.ForwardM1(0)
@@ -130,13 +125,15 @@ class SteerClaw:
 
 		#----------------------------------------------------
 		#Roboclaw2
-		self.enc2Pos = self.claw.ReadEncM2()[1]
-		self.finalEnc2Val = int(self.qpps2*self.targetAngleM2)
-		self.diff2 = self.finalEnc2Val - self.enc2Pos  #Error in 1
-		self.delta_error2 = self.diff2 - self.last_error2
-		if (delta_time >= self.sample_time):
-			self.PTerm2 = self.diff2 #Pterm
-			self.ITerm2+=self.diff2*delta_time
+
+        if (delta_time >= self.sample_time):
+            time_vec.append(self.current_time)
+            self.enc2Pos = -self.claw.ReadEncM2()[1]
+            self.finalEnc2Val = int(self.qpps2*self.targetAngleM2)
+            self.diff2 = self.finalEnc2Val - self.enc2Pos  #Error in 1
+            self.delta_error2 = self.diff2 - self.last_error2
+            self.PTerm2 = self.diff2 #Pterm
+            self.ITerm2+=self.diff2*delta_time
             if (self.ITerm2 < -self.int_windout2):
                 self.ITerm2 = -self.int_windout2
             elif (self.ITerm2 > self.int_windout2):
@@ -151,29 +148,21 @@ class SteerClaw:
 
             velM2 = int((self.kp2*self.PTerm2) + (self.ki2 * self.ITerm2) + (self.kd2 * self.DTerm2))
 
+
             if self.enc2Pos < (self.finalEnc2Val - self.deadzone2):
 				velM2 = velM2 + self.kon2
-				val2_at_t.append(velM2)
+				val2_at_t.append(self.enc2Pos)
 				tval2_at_t.append(self.targetAngleM2)
-				self.claw.ForwardM2(min(255, -velM2))
+				self.claw.ForwardM2(min(255, velM2))
             elif self.enc2Pos > (self.finalEnc2Val + self.deadzone2):
 				velM2 = velM2 - self.kon2
-				val2_at_t.append(velM2)
+				val2_at_t.append(self.enc2Pos)
 				tval2_at_t.append(self.targetAngleM2)
-				self.claw.BackwardM2(min(255, velM2))
+				self.claw.BackwardM2(min(255, -velM2))
             else:
                 self.claw.ForwardM2(0)
 
-		self.lenplt1=min(len(val2_at_t),len(time_vec))
-        self.lenplt2=min(len(tval2_at_t),len(time_vec))
-        self.last_time=self.current_time
-        if(self.lenplt1!=0):
-        	hb.set_ydata(val2_at_t[0:self.lenplt1-1])
-        	hb.set_xdata(time_vec[0:self.lenplt1-1])
-        	#hr.set_ydata(tval2_at_t[0:self.lenplt2-1])
-        	#hr.set_xdata(time_vec[0:self.lenplt2-1])
-        	plt.draw()
-        	plt.pause(0.1)
+		
 
 		#----------------------------------------------------
 
