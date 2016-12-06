@@ -19,6 +19,7 @@ Checking whether the appropriate roboclaw is connected, run this command : <br/>
 Checking whether it's roboclaw on ttyACM1, run this command : <br/>
    `udevadm info -a -n /dev/ttyACM0 | grep '{product}'`<br/>
 <br/>
+[More about Udev](http://www.joakimlinde.se/microcontrollers/arduino/avr/udev.php) <br/>
 
 ## Roscore doesn't work (1 GB log file error)
 
