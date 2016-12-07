@@ -29,3 +29,4 @@ Force use roscore with appropriate ROS_IP and ROS_MASTER_URI. No cleanup/etc is 
 - [x] Steer sorted on laptop 
 - [ ] Drive on Rpi by 8/12
 - [ ] Test of steer on Rpi by 9/12
+- [ ] Purschase test match tickets :P 
