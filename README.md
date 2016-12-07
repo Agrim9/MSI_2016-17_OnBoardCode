@@ -25,3 +25,7 @@ Checking whether it's roboclaw on ttyACM1, run this command : <br/>
 
 Force use roscore with appropriate ROS_IP and ROS_MASTER_URI. No cleanup/etc is required for same, the error is due to some internal SSH kindof error with ROS.
 
+## Deadlines
+- [x] Steer sorted on laptop 
+- [ ] Drive on Rpi by 8/12
+- [ ] Test of steer on Rpi by 9/12
