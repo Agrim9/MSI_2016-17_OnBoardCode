@@ -25,6 +25,10 @@ Checking whether it's roboclaw on ttyACM1, run this command : <br/>
 
 Force use roscore with appropriate ROS_IP and ROS_MASTER_URI. No cleanup/etc is required for same, the error is due to some internal SSH kindof error with ROS.
 
+## SSH on RPi 
+
+Install Raspbian and place empty file named "ssh" (no extensions) in boot directory for sshing to pi.
+
 ## Deadlines
 - [x] Steer sorted on laptop 
 - [ ] Drive on Rpi by 8/12
