@@ -25,9 +25,14 @@ Checking whether it's roboclaw on ttyACM1, run this command : <br/>
 
 Force use roscore with appropriate ROS_IP and ROS_MASTER_URI. No cleanup/etc is required for same, the error is due to some internal SSH kindof error with ROS.
 
-## SSH on RPi 
+## Configuring RPI for the rover
 
-Install Raspbian and place empty file named "ssh" (no extensions) in boot directory for sshing to pi.
+* *Getting Rpi SSH ready* : Install Raspbian and place empty file named "ssh" (no extensions) in boot directory for sshing to pi.
+*  *Installing ROS Indigo on RPi* : [Install ROS](http://wiki.ros.org/ROSberryPi/Installing%20ROS%20Indigo%20on%20Raspberry%20Pi). Deviations from the steps in link :
+ * No need for applying patch to collada_urdf 
+ * Didn't apply a patch for RViz as it is not needed at this stage
+ * Robot/Perception weren't installed 
+* *USB locking settings* : 
 
 ## Deadlines
 - [x] Steer sorted on laptop 
