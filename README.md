@@ -35,6 +35,10 @@ Force use roscore with appropriate ROS_IP and ROS_MASTER_URI. No cleanup/etc is 
  * In the last step, code was built using -j2 option instead of -j4 (to save RAM)
 * *USB locking settings* : Change the ATTRS{devpath} parameter in 72-micro-devel.rules accordingly for the same
 
+## Debugging 
+* ** ROSlaunch Error ** *Can't locate launch node of type <> * : make python file executable by chmod +x filename.py and putting `#!/usr/bin/env` python in the start of python file
+* **ValueError** : *The channel sent is invalid on a Raspberry Pi* : Change board mode from GPIO.board to GPIO.BCM
+<br/>
 ## Deadlines
 - [x] Steer sorted on laptop 
 - [x] Installed ROS on RPi
