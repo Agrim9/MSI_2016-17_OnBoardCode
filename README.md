@@ -37,7 +37,7 @@ Force use roscore with appropriate ROS_IP and ROS_MASTER_URI. No cleanup/etc is 
 
 ## Debugging 
 
-* **ROSlaunch Error** *Can't locate launch node of type<>* : make python file executable by chmod +x filename.py and putting `#!/usr/bin/env` python in the start of python file
+* **ROSlaunch Error** *Can't locate launch node of type<>* : make python file executable by chmod +x filename.py and putting `#!/usr/bin/env python` in the start of python file
 * **ValueError** : *The channel sent is invalid on a Raspberry Pi* : Change board mode from GPIO.board to GPIO.BCM
 
 ## Deadlines
