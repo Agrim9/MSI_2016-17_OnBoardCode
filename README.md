@@ -33,7 +33,7 @@ Force use roscore with appropriate ROS_IP and ROS_MASTER_URI. No cleanup/etc is 
  * Didn't apply a patch for RViz as it is not needed at this stage
  * Robot/Perception weren't installed 
  * In the last step, code was built using -j2 option instead of -j4 (to save RAM)
-* *USB locking settings* : 
+* *USB locking settings* : Change the ATTRS{devpath} parameter in 72-micro-devel.rules accordingly for the same
 
 ## Deadlines
 - [x] Steer sorted on laptop 
