@@ -47,3 +47,7 @@ Force use roscore with appropriate ROS_IP and ROS_MASTER_URI. No cleanup/etc is 
 - [x] Drive on Rpi by 8/12
 - [x] Test of steer on Rpi by 9/12
 - [ ] Ground testing of mobility 
+- [ ] Arm familiarisation and merging of Micky's codes by 14/12
+- [ ] Arm codes in ROS by 16/12
+- [ ] Arm testing and debugging by 19/12
+- [ ] Final cleanup of the winter work ! **20/12**
