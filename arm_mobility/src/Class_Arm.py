@@ -37,9 +37,9 @@ class Arm:
 
     def update(self):
         if self.actuator_velocity < -10:
-            self.actuator_forward()
-        elif self.actuator_velocity > 10:
             self.actuator_backward()
+        elif self.actuator_velocity > 10:
+            self.actuator_forward()
         else:
             self.actuator_stopped()
 

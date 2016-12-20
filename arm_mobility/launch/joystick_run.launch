@@ -1,5 +1,0 @@
-<launch>
-	<node pkg="arm_mobility" name="arm_driver" type="arm_driver" output="screen" required="true" /> 
-	<node pkg="arm_mobility" name="arm_command" type="arm_command.py" required="true" />
-	<node pkg="arm_mobility" name="arm_command" type="arm_command.py" required="true" /> 
-</launch>
