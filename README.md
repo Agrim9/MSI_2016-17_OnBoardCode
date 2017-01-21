@@ -41,10 +41,5 @@ Force use roscore with appropriate ROS_IP and ROS_MASTER_URI. No cleanup/etc is 
 * **ValueError** : *The channel sent is invalid on a Raspberry Pi* : Change board mode from GPIO.board to GPIO.BCM
 * **Drive Jerks** : GPIO.cleanup() **MUST** be always done for drive w/o jerks
 
-## Deadlines
-- [x] Steer sorted on laptop 
-- [x] Installed ROS on RPi
-- [x] Drive on Rpi by 8/12
-- [x] Test of steer on Rpi by 9/12
-- [ ] Ground testing of mobility 
+## Report of [Terrain Traversal Tests](http://tinyurl.com/Terrain-Tests)
 
