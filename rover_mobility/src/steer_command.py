@@ -25,7 +25,7 @@ plt.ion()
 plt.show()
 class SteerClaw:
 
-    def __init__(self, address, dev_name, baud_rate, name, kp1 = 0.15, kp2=0.15,ki1=0.08,ki2=0.08,kd1=0.06,kd2=0.06,int_windout1=50,int_windout2=50, qpps1 = 5.34, qpps2 = 5.34, deadzone1 = 30, deadzone2 = 20, kon1 = 0, kon2 = 0, sample_time=0.1, last_time=0.00, current_time=0.00):
+    def __init__(self, address, dev_name, baud_rate, name, kp1 = 0.15, kp2=0.15,ki1=0.15,ki2=0.15,kd1=0.8,kd2=0.8,int_windout1=50,int_windout2=50, qpps1 = 5.34, qpps2 = 5.34, deadzone1 = 30, deadzone2 = 20, kon1 = 0, kon2 = 0, sample_time=0.1, last_time=0.00, current_time=0.00):
 		self.ERRORS = {0x0000: (diagnostic_msgs.msg.DiagnosticStatus.OK, "Normal"),
 		0x0001: (diagnostic_msgs.msg.DiagnosticStatus.WARN, "M1 over current"),
 		0x0002: (diagnostic_msgs.msg.DiagnosticStatus.WARN, "M2 over current"),
