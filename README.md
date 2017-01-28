@@ -42,7 +42,7 @@ Force use roscore with appropriate ROS_IP and ROS_MASTER_URI. No cleanup/etc is 
 * **Drive Jerks** : GPIO.cleanup() **MUST** be always done for drive w/o jerks
 
 ## APM node
-run : rosrun mavros mavros_node _fcu_url:=/dev/ttyACM0:115200 </br>
+run : `rosrun mavros mavros_node _fcu_url:=/dev/ttyACM0:115200` </br>
 Subscriber node : `/mavros/global_position/raw/fix` </br>
 Mavros package for extracting data from Ardu pilot MEGA (GPS module Ublox Neo 7m with compass) </br>
 
