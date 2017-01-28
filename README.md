@@ -21,9 +21,13 @@ Checking whether the appropriate roboclaw is connected, run this command : <br/>
 Checking whether it's roboclaw on ttyACM1, run this command : <br/>
    `udevadm info -a -n /dev/ttyACM0 | grep '{product}'`<br/>
 <br/>
-[More about Udev](http://www.joakimlinde.se/microcontrollers/arduino/avr/udev.php) <br/>
 
 ## General Installation and Debugging Tips
+
+### Configuring RPI for the rover
+
+* **Getting Rpi SSH ready** : Install Raspbian and place empty file named "ssh" (no extensions) in boot directory for sshing to pi.
+*  [**Installing ROS Indigo on RPi** ](http://wncc-iitb.org/wiki/index.php/ROS#Installation_of_ROS_Indigo_on_RPi)
 
 ### USB Locking 
 * Make a .rules file in `/etc/udev/rules.d` starting with numbers above 50 (eg 72-\<filename\>.rules)
@@ -32,10 +36,6 @@ Checking whether it's roboclaw on ttyACM1, run this command : <br/>
 * Change devpath/product etc to get your device running. Don't forget to `sudo udev restart` after publishing new rules for a device
 * `udevadm info --name=\<symlink_name\>` to check whether rule worked or not
 
-### Configuring RPI for the rover
-
-* **Getting Rpi SSH ready** : Install Raspbian and place empty file named "ssh" (no extensions) in boot directory for sshing to pi.
-*  [**Installing ROS Indigo on RPi** ](http://wncc-iitb.org/wiki/index.php/ROS#Installation_of_ROS_Indigo_on_RPi)
 
 ### Debugging 
 
@@ -49,6 +49,16 @@ Checking whether it's roboclaw on ttyACM1, run this command : <br/>
 run : `rosrun mavros mavros_node _fcu_url:=/dev/ttyACM0:115200` </br>
 Subscriber node : `/mavros/global_position/raw/fix` </br>
 Mavros package for extracting data from Ardu pilot MEGA (GPS module Ublox Neo 7m with compass) </br>
+
+## Plotting Real Time data on control system using ROS
+
+</br>
+Plotting done using matplotlib. Used threads to get it done in real time. One important thing to note was that **matplotlib** functions always need to be used in main thread only. This is causes [Main thread is not in main loop](http://stackoverflow.com/questions/16016102/matplotlib-and-multiprocessing-runtimeerror) error. For bypassing this issue, run the PID control loop concurrently in different forked threads, and have the plotting code in main thread.
+</br>
+
+<center>
+![PID_plot](control_sys_plot.jpg)
+</center>
 
 ## Report of [Terrain Traversal Tests](http://tinyurl.com/Terrain-Tests)
 
