@@ -32,7 +32,7 @@ Checking whether it's roboclaw on ttyACM1, run this command : <br/>
 ### USB Locking 
 * Make a .rules file in `/etc/udev/rules.d` starting with numbers above 50 (eg 72-\<filename\>.rules)
 * Describe parameters to check for while creating a new symbolic link to already existing rules like ttyACM/USB
-* An example for rules file [(made for roboclaw):](https://github.com/Agrim9/MSI_2016-17_OnBoardCode/blob/master/72-micro-devel.rules)
+* An example for rules file [(made for roboclaw)](https://github.com/Agrim9/MSI_2016-17_OnBoardCode/blob/master/72-micro-devel.rules)
 * Change devpath/product etc to get your device running. Don't forget to `sudo udev restart` after publishing new rules for a device
 * `udevadm info --name=\<symlink_name\>` to check whether rule worked or not
 
@@ -53,12 +53,12 @@ Mavros package for extracting data from Ardu pilot MEGA (GPS module Ublox Neo 7m
 ## Plotting Real Time data on control system using ROS
 
 </br>
-Plotting done using matplotlib. Used threads to get it done in real time. One important thing to note was that **matplotlib** functions always need to be used in main thread only. This is causes [Main thread is not in main loop](http://stackoverflow.com/questions/16016102/matplotlib-and-multiprocessing-runtimeerror) error. For bypassing this issue, run the PID control loop concurrently in different forked threads, and have the plotting code in main thread.
+Plotting done using matplotlib. Used threads to get it done in real time. One important thing to note was that **matplotlib** functions always need to be used in main thread only. Not following this causes [Main thread is not in main loop](http://stackoverflow.com/questions/16016102/matplotlib-and-multiprocessing-runtimeerror) error. For bypassing this issue, run the PID control loop concurrently in different forked threads, and have the plotting code in main thread.
 </br>
 
 <center>
 ![PID_plot](control_sys_plot.jpg)
 </center>
 
-## Report of [Terrain Traversal Tests](http://tinyurl.com/Terrain-Tests)
+## Report of [Terrain Traversal Tests](https://docs.google.com/document/d/133miP4SbEnp0nfhqepswal2rMCrexqwS61UNtjvPTYw/edit?usp=sharing)
 
