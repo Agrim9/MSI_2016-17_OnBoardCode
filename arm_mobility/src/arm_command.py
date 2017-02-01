@@ -84,13 +84,11 @@ class SteerClaw:
 		self.lenplt1=0.00
 		self.lenplt2=0.00
 
-    def update(self):
+    def update_1(self):
 
-    	if (actuator_lock == 0)
-	    	{
+    	if (actuator_lock == 0):
 	    	self.current_time = time.time()
-	        delta_time = self.current_time - self.last_time
-			
+	        delta_time = self.current_time - self.last_time			
 	        if (delta_time >= self.sample_time):
 	            time_vec.append(self.current_time)
 	            self.enc1Pos = self.claw.ReadEncM1()[1]
@@ -120,13 +118,13 @@ class SteerClaw:
 	                tval1_at_t.append(self.targetAngleM1)
 	                self.claw.BackwardM1(min(255, -velM1))
 	            else:
-	                self.claw.ForwardM1(0)
-	        }
+	                self.claw.ForwardM1(0)	        
 
-
-
-		if (elbowmotor_lock == 0)
-			{
+	def update_2(self):
+		
+		if (elbowmotor_lock == 0):
+	        self.current_time = time.time()
+	        delta_time = self.current_time - self.last_time			
 	        if (delta_time >= self.sample_time):
 	            time_vec.append(self.current_time)
 	            self.enc2Pos = -self.claw.ReadEncM2()[1]
@@ -162,7 +160,7 @@ class SteerClaw:
 					self.claw.BackwardM2(min(255, -velM2))
 	            else:
 	                self.claw.ForwardM2(0)
-	        }
+	        
 
 
 		#----------------------------------------------------
@@ -195,7 +193,7 @@ if __name__ == "__main__":
 
 	for i in range(20):
 		try:
-			roboclaw2 = SteerClaw(0x81, "/dev/roboclaw2", 9600, "LeftClaw")
+			roboclaw2 = SteerClaw(0x81, "/dev/roboclaw_arm2", 9600, "LeftClaw")
 		except SerialException:
 			rospy.logwarn("Could not connect to RoboClaw2, retrying...")
 			r_time.sleep()
@@ -205,7 +203,7 @@ if __name__ == "__main__":
 	
 	for i in range(20):
 		try:
-			roboclaw1 = SteerClaw(0x80, "/dev/roboclaw1", 9600, "RightClaw")
+			roboclaw1 = SteerClaw(0x80, "/dev/roboclaw_arm1", 9600, "RightClaw")
 		except SerialException:
 			rospy.logwarn("Could not connect to RoboClaw1, retrying...")
 			r_time.sleep()
@@ -215,21 +213,22 @@ if __name__ == "__main__":
 	r_time = rospy.Rate(5)
 	roboclaw1.claw.ForwardM1(0)
 	roboclaw1.claw.ForwardM2(0)
-	roboclaw2.claw.ForwardM1(0)
-	roboclaw2.claw.ForwardM2(0)
+	#roboclaw2.claw.ForwardM1(0)
+	#roboclaw2.claw.ForwardM2(0)
 
 	roboclaw1.targetAngleM1 = 0
 	roboclaw1.targetAngleM2 = 0
-	roboclaw2.targetAngleM1 = 0
-	roboclaw2.targetAngleM2 = 0
+	#roboclaw2.targetAngleM1 = 0
+	#roboclaw2.targetAngleM2 = 0
 
 
 	while not rospy.is_shutdown():
-		roboclaw1.update()
-		roboclaw2.update()
+		roboclaw1.update_1()
+		roboclaw1.update_2()
+		#roboclaw2.update_2()
 		r_time.sleep()
 
 	roboclaw1.claw.ForwardM1(0)
 	roboclaw1.claw.ForwardM2(0)
-	roboclaw2.claw.ForwardM1(0)
-	roboclaw2.claw.ForwardM2(0)
+	#roboclaw2.claw.ForwardM1(0)
+	#roboclaw2.claw.ForwardM2(0)
