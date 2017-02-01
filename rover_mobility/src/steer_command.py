@@ -183,10 +183,10 @@ def steer_callback(inp):
 
 if __name__ == "__main__":
 
-	rospy.init_node("roboclaw_node")
+	rospy.init_node("steer_node")
 	rospy.loginfo("Starting steer node")
 
-	rospy.Subscriber("/rover/ard_directives", Float64MultiArray, steer_callback)
+	rospy.Subscriber("/rover/drive_directives", Float64MultiArray, steer_callback)
 	rospy.loginfo("I'm here")
 
 	r_time = rospy.Rate(1)
