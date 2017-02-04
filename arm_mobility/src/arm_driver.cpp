@@ -6,7 +6,7 @@ ros::Publisher arm_pub;
 void armCallback(const std_msgs::Float64MultiArray::ConstPtr& msg) {
 
 	std::vector<double> inp = msg -> data;
-	float basemotor = inp[2]
+	float basemotor = inp[2];
 	float shoulderactuator = inp[3];
 	float elbowmotor = inp[4];
 	float pitchmotor = inp[5];
@@ -24,7 +24,7 @@ void armCallback(const std_msgs::Float64MultiArray::ConstPtr& msg) {
 
 	std_msgs::Float64MultiArray outMsg;
 	outMsg.data = out;
-	ard_pub.publish(outMsg);
+	arm_pub.publish(outMsg);
 }
 
 int main(int argc, char** argv) {

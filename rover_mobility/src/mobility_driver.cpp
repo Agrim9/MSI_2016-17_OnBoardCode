@@ -20,7 +20,7 @@ void driveCallback(const std_msgs::Float64MultiArray::ConstPtr& msg) {
 
 	std_msgs::Float64MultiArray outMsg;
 	outMsg.data = out;
-	ard_pub.publish(outMsg);
+	drive_pub.publish(outMsg);
 }
 
 
