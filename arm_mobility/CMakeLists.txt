@@ -130,7 +130,7 @@ include_directories(
 include_directories(include ${catkin_INCLUDE_DIRS})
 
 add_executable(arm_driver src/arm_driver.cpp)
-add_executable(joystick_run1 src/joystick_run.cpp)
+#add_executable(joystick_run src/joystick_run.cpp)
 
 ## Add cmake target dependencies of the executable
 ## same as for the library above
@@ -141,9 +141,6 @@ target_link_libraries(arm_driver
   ${catkin_LIBRARIES}
 )
 
-target_link_libraries(joystick_run1
-  ${catkin_LIBRARIES}
-)
 
 
 #############

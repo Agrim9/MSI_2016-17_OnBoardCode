@@ -18,9 +18,9 @@ def drive_callback(inp):
     Actuator1.rover_velocity = inp.data[0]/2.55
 
 if __name__ == "__main__":
-    rospy.init_node("actuator_node")
+    rospy.init_node("rotation_node")
     rospy.loginfo("Starting Actuator Node")
-    rospy.Subscriber("/rover/ard_directives", Float64MultiArray, drive_callback)
+    rospy.Subscriber("/rover/arm_directives", Float64MultiArray, drive_callback)
 
     while not rospy.is_shutdown():
         p1 = Process(target=Actuator1.update())

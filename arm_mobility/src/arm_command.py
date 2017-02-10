@@ -3,188 +3,245 @@ from math import pi, cos, sin
 
 import diagnostic_msgs
 import diagnostic_updater
+from roboclaw import RoboClaw
 import rospy
 import tf
 from geometry_msgs.msg import Quaternion, Twist
 from nav_msgs.msg import Odometry
 from std_msgs.msg import Float64MultiArray
+from std_msgs.msg import String
 import time
 import matplotlib.pyplot as plt
 import numpy as np
-import RPi.GPIO as GPIO
 from scipy.interpolate import spline
-from std_msgs.msg import String
 
 from serial.serialutil import SerialException as SerialException
 
-time_vec = []
-val1_at_t = []
-tval1_at_t = []
-val2_at_t = []
-tval2_at_t = []
-plt.ion()
-plt.show()
-VelPin1 = 18
-MotorHigh = 17
-MotorLow = 27
-SPI_CLK=18
-SPI_MISO=23
-SPI_MOSI=24
-SPI_CS=25
-GPIO.setmode(GPIO.BCM)
-GPIO.setup(MotorHigh,GPIO.OUT)
-GPIO.setup(MotorLow,GPIO.OUT)
-GPIO.setup(SPI_MOSI, GPIO.OUT)
-GPIO.setup(SPI_MISO, GPIO.IN)
-GPIO.setup(SPI_CLK, GPIO.OUT)
-GPIO.setup(SPI_CS, GPIO.OUT)
+class SteerClaw:
 
-#10k pot connected to adc #1
-adc_used=0
+    def __init__(self, address, dev_name, baud_rate, name, kp1 = 10, kp2=10,ki1=15,ki2=15,kd1=10,kd2=10,int_windout1=200,int_windout2=200, qpps1 = 5.34, qpps2 = 5.34, deadzone1 = 2, deadzone2 = 2, sample_time=0.1, last_time=0.00, current_time=0.00):
+        self.ERRORS = {0x0000: (diagnostic_msgs.msg.DiagnosticStatus.OK, "Normal"),
+        0x0001: (diagnostic_msgs.msg.DiagnosticStatus.WARN, "M1 over current"),
+        0x0002: (diagnostic_msgs.msg.DiagnosticStatus.WARN, "M2 over current"),
+        0x0004: (diagnostic_msgs.msg.DiagnosticStatus.ERROR, "Emergency Stop"),
+        0x0008: (diagnostic_msgs.msg.DiagnosticStatus.ERROR, "Temperature1"),
+        0x0010: (diagnostic_msgs.msg.DiagnosticStatus.ERROR, "Temperature2"),
+        0x0020: (diagnostic_msgs.msg.DiagnosticStatus.ERROR, "Main batt voltage high"),
+        0x0040: (diagnostic_msgs.msg.DiagnosticStatus.ERROR, "Logic batt voltage high"),
+        0x0080: (diagnostic_msgs.msg.DiagnosticStatus.ERROR, "Logic batt voltage low"),
+        0x0100: (diagnostic_msgs.msg.DiagnosticStatus.WARN, "M1 driver fault"),
+        0x0200: (diagnostic_msgs.msg.DiagnosticStatus.WARN, "M2 driver fault"),
+        0x0400: (diagnostic_msgs.msg.DiagnosticStatus.WARN, "Main batt voltage high"),
+        0x0800: (diagnostic_msgs.msg.DiagnosticStatus.WARN, "Main batt voltage low"),
+        0x1000: (diagnostic_msgs.msg.DiagnosticStatus.WARN, "Temperature1"),
+        0x2000: (diagnostic_msgs.msg.DiagnosticStatus.WARN, "Temperature2"),
+        0x4000: (diagnostic_msgs.msg.DiagnosticStatus.OK, "M1 home"),
+        0x8000: (diagnostic_msgs.msg.DiagnosticStatus.OK, "M2 home")}
 
-tolerance=2 #we change readings only when pot moves 5 counts
-
-#Analog Pin Setup
-
-
-class ArmMotor:
-
-    def __init__(self, motor_no , kp1 = 0.10, ki1=0.08, kd1=0.06, int_windout1=50, qpps1 = 5.34, deadzone1 = 30, sample_time=0.1, last_time=0.00, current_time=0.00):
-
-        if((motor_no==1)) :
-            self.VelPin=VelPin1
-        GPIO.setup(self.VelPin,GPIO.OUT)
-        self.actuator_velocity = 0
-        self.Velocity=GPIO.PWM(self.VelPin,255)
-        self.Velocity.start(0)
-        self.targetAngleM1 = 0
-        self.targetAngleM2 = 0
+        self.claw = RoboClaw(address, dev_name, baud_rate)
+        self.name = name
+        self.claw.ResetEncoders()
+        self.targetRpm1=0
+        self.targetRpm2=0
         self.kp1 = kp1
+        self.kp2 = kp2
         self.ki1 = ki1
+        self.ki2 = ki2
         self.kd1 = kd1
+        self.kd2 = kd2
         self.qpps1 = qpps1
+        self.qpps2 = qpps2
         self.deadzone1 = deadzone1
+        self.deadzone2 = deadzone2
         self.int_windout1=int_windout1
-        #self.kon1 = kon1
+        self.int_windout2=int_windout2
         self.sample_time = sample_time
         self.last_time = 0.00
         self.last_error1 = 0.00
+        self.last_error2 = 0.00
         self.PTerm1=0.00
         self.ITerm1=0.00
         self.DTerm1=0.00
+        self.PTerm2=0.00
+        self.ITerm2=0.00
+        self.DTerm2=0.00
         self.delta_error1=0.00
+        self.delta_error2=0.00
         self.diff1=0.00
+        self.diff2=0.00
         self.enc1Pos=0.00
-        self.finalEnc1Val=0.00
+        self.enc2Pos=0.00
+        self.finalRpm1Val=0.00
+        self.finalRpm2Val=0.00
         self.lenplt1=0.00
-        self.kon1=0.00
+        self.lenplt2=0.00
+        self.last_Rpm1=0.00
+        self.last_Rpm2=0.00
+        self.last_enc1pos = 0.00
+        self.last_enc2pos = 0.00
 
-    def update(self):
-    	self.current_time = time.time()
-        delta_time = self.current_time - self.last_time
-		#----------------------------------------------------
-		#PID
-        if (delta_time >= self.sample_time):
-            time_vec.append(self.current_time)
-            #self.enc1Pos = self.claw.ReadEncM1()[1]
-            self.enc1Pos = 0
-            self.finalEnc1Val = int(self.qpps1*self.targetAngleM1)
-            self.diff1 = self.finalEnc1Val - self.enc1Pos  #Error in 1
-            self.delta_error1 = self.diff1 - self.last_error1
-            self.PTerm1 = self.diff1 #Pterm
-            self.ITerm1+=self.diff1*delta_time
-            if (self.ITerm1 < -self.int_windout1):
-                self.ITerm1 = -self.int_windout1
-            elif (self.ITerm1 > self.int_windout1):
-                self.ITerm1 = self.int_windout1
-            self.DTerm1 = self.delta_error1 / delta_time
-            # Remember last time and last error for next calculation
-            self.last_error1 = self.diff1
+    def pub_pot(self, pub, claw_name):
+        pot_val1 = self.claw.ReadEncM1()
+        pot_val2 = self.claw.ReadEncM2()
+        pub.publish(claw_name+"| Pot1 Val :" +str(pot_val1) + "| Pot2 Val :" +str(pot_val2))
 
-            velM1 = int((self.kp1*self.PTerm1) + (self.ki1 * self.ITerm1) + (self.kd1 * self.DTerm1))
+    def pub_curr(self,pub,claw_name):
+        curr_val = self.claw.ReadCurrents()
+        pub.publish(claw_name+"| Curr1 Val :" +str(curr_val[1]) + "| Curr2 Val :" +str(curr_val[2]))
 
-            if self.enc1Pos < (self.finalEnc1Val - self.deadzone1):
-                velM1 = velM1 + self.kon1
-                val1_at_t.append(self.enc1Pos)
-                tval1_at_t.append(self.targetAngleM1)
-                #self.claw.ForwardM1(min(255, velM1))
-            elif self.enc1Pos > (self.finalEnc1Val + self.deadzone1):
-                velM1 = velM1 - self.kon1
-                val1_at_t.append(self.enc1Pos)
-                tval1_at_t.append(self.targetAngleM1)
-                #self.claw.BackwardM1(min(255, -velM1))
-            #else:
-                #self.claw.ForwardM1(0)
+    def update_rpm_1(self):
+
+            self.current_time = time.time()
+            delta_time = self.current_time - self.last_time
+            if (delta_time >= self.sample_time):
+                self.enc1Pos = self.claw.ReadEncM1()[1]
+                self.current_Rpm1 = (self.enc1Pos - self.last_enc1pos)/(delta_time)
+                self.finalRpm1Val = int(self.targetRpm1)
+                self.diff1 = self.finalRpm1Val - self.current_Rpm1  #Error in 1
+                self.delta_error1 = self.diff1 - self.last_Rpm1
+                self.PTerm1 = self.diff1 #Pterm
+                self.ITerm1+=self.diff1*delta_time
+                if (self.ITerm1 < -self.int_windout1):
+                    self.ITerm1 = -self.int_windout1
+                elif (self.ITerm1 > self.int_windout1):
+                    self.ITerm1 = self.int_windout1
+                self.DTerm1 = self.delta_error1 / delta_time
+                 # Remember last time and last error for next calculation
+                self.last_error1 = self.diff1
+                self.last_Rpm1 = self.current_Rpm1
+                self.last_enc1pos = self.enc1Pos
+
+                velM1 = int((self.kp1*self.PTerm1) + (self.ki1 * self.ITerm1) + (self.kd1 * self.DTerm1))
+
+                if self.current_Rpm1 < (self.finalRpm1Val - self.deadzone1):
+                    self.claw.ForwardM1(min(255, velM1))
+                elif self.current_Rpm1 > (self.finalRpm1Val + self.deadzone1):
+                    self.claw.BackwardM1(min(255, -velM1))
+                else:
+                    self.claw.ForwardM1(0)
+
+    def update_rpm_2(self):
+            self.current_time = time.time()
+            delta_time = self.current_time - self.last_time
+            if (delta_time >= self.sample_time):
+                self.enc2Pos = -self.claw.ReadEncM2()[1]
+                self.current_Rpm2 = (self.enc2Pos - self.last_enc2pos)/(delta_time)
+                self.finalRpm2Val = int(self.targetRpm2)
+                self.diff2 = self.finalRpm2Val - self.current_Rpm2
+                self.delta_error2 = self.diff2 - self.last_Rpm2
+                self.PTerm2 = self.diff2 #Pterm
+                self.ITerm2+=self.diff2*delta_time
+                if (self.ITerm2 < -self.int_windout2):
+                    self.ITerm2 = -self.int_windout2
+                elif (self.ITerm2 > self.int_windout2):
+                    self.ITerm2 = self.int_windout2
+
+                self.DTerm1 = self.delta_error2 / delta_time
+                # Remember last time and last error for next calculation
+                self.last_error2 = self.diff2
+                self.last_Rpm2 = self.current_Rpm2
+                self.last_enc2pos = self.enc2Pos
+                velM2 = int((self.kp2*self.PTerm2) + (self.ki2 * self.ITerm2) + (self.kd2 * self.DTerm2))
+                if self.current_Rpm2 < (self.finalRpm2Val - self.deadzone2):
+                    self.claw.ForwardM2(min(125, velM2))
+                elif self.current_Rpm2 > (self.finalRpm2Val + self.deadzone2):
+                    self.claw.BackwardM2(min(125, -velM2))
+                else:
+                    self.claw.ForwardM2(0)
+
+
+
+        #----------------------------------------------------
+
 
     #    rospy.loginfo("%s: %d %d %d %d", self.name, self.diff1, self.targetAngleM1,self.claw.ReadEncM1()[1], velM1)
     #    rospy.loginfo("%s: %d %d %d %d", self.name, self.diff2, self.targetAngleM2,self.claw.ReadEncM2()[1], velM2)
 
 
-#Reading Analog data from ADC MCP3008, having 8 possible ADC's ( 0 to 7)
-# ADC_norepresents the ADC we are reading data from
-def Read_ADC(adc_no, clk, mosi, miso, cs):
-    if((adc_no>7) or (adc_no<0)): 
-        return -1
-    GPIO.output(cs, True) #CS bar, chip select should be high initially
 
-    GPIO.output(clk, False) #start clock low
-    GPIO.output(cs, False) #get CS bar to low now, selecting the ADC for usage
+def steer_callback(inp):
 
-    ADC_sel = adc_no
-    ADC_sel |= 0x18 #start_bit high(00011000) 
-    ADC_sel <<= 3
-
-    ##### Select proper ADC out of 8 #####
-    for i in range(5):
-        if (ADC_sel & 0x80):
-            GPIO.output(mosi,True)
-        else:
-            GPIO.output(mosi,False)
-        ADC_sel<<=1
-        GPIO.output(clk, True)
-        GPIO.output(clk, True)
+    actuator_lock = inp.data[1]
     
-    ADC_out=0
-    #ADC now selected, read value from it
-    #read one empty bit, one null bit and 10 ADC bits
-    for i in range(12):
-        GPIO.output(clk, True)
-        GPIO.output(clk, False)
-        ADC_out<<=1
-        if(GPIO.input(miso)):
-            ADC_out |= 0x01
-    GPIO.output(cs, True) #Deselect the chip by stating CS bar as high
-    ADC_out >>=1 #First bit is null, drop it
-    return ADC_out
+    if actuator_lock == 1:
+        roboclaw1.targetRpm1 = 255
+    elif actuator_lock == -1:
+        roboclaw1.targetRpm1 = -255
+    else: 
+        roboclaw1.targetRpm1 = 0
+
+    elbowmotor_lock = inp.data[2]
+    
+    if elbowmotor_lock == 1:
+        roboclaw1.targetRpm2 = 255
+    elif elbowmotor_lock == -1:
+        roboclaw1.targetRpm2 = -255
+    else:
+        roboclaw1.targetRpm2 = 0
+    
+    pitchmotor_lock = inp.data[3]
+    
+    #if pitchmotor_lock == 1:
+    #    roboclaw2.targetRpm1 = 150
+    #elif pitchmotor_lock == -1:
+    #    roboclaw2.targetRpm1 = -150
+    #else: 
+    #    roboclaw2.targetRpm1 = 0
+
+    grippermotor_lock = inp.data[5]
+
+    #if grippermotor_lock == 1:
+    #    roboclaw2.targetRpm2 = 150
+    #elif grippermotor_lock == -1:
+    #    roboclaw2.targetRpm2 = -150
+    #else: 
+    #    roboclaw2.targetRpm2 = 0
+
 
 if __name__ == "__main__":
 
-    rospy.init_node("Motor_node")
-    rospy.loginfo("Starting Motor node")
-    pub = rospy.Publisher('ADC_Val', String, queue_size=10)
-    rospy.loginfo("I'm here")
-
+    rospy.init_node("roboclaw_node")
+    rospy.loginfo("Starting steer node")
+    pub = rospy.Publisher('Pot_Val', String, queue_size=10)
+    pub1 = rospy.Publisher('Curr_Val', String, queue_size=10)
+    rospy.Subscriber("/rover/arm_directives", Float64MultiArray, steer_callback)
+    
     r_time = rospy.Rate(1)
 
-    ArmMotor1 = ArmMotor(1)
+    #for i in range(20):
+    #       try:
+    #               roboclaw2 = SteerClaw(0x81, "/dev/roboclaw_a2", 9600, "GripClaw")
+    #       except SerialException:
+    #               rospy.logwarn("Could not connect to Arm RoboClaw2, retrying...")
+    #               r_time.sleep()
+    #rospy.loginfo("Connected to Arm RoboClaw2")
+    
+
+    for i in range(20):
+        try:
+            roboclaw1 = SteerClaw(0x80, "/dev/ttyACM0", 9600, "BaseClaw")
+        except SerialException:
+            rospy.logwarn("Could not connect to Arm RoboClaw1, retrying...")
+            r_time.sleep()
+    rospy.loginfo("Connected to Arm RoboClaw1")
+
 
     r_time = rospy.Rate(5)
-
-    old_val=0
+    roboclaw1.claw.ForwardM1(0)
+    roboclaw1.claw.ForwardM2(0)
+    #roboclaw2.claw.ForwardM1(0)
+    #roboclaw2.claw.ForwardM2(0)
 
     while not rospy.is_shutdown():
-        
-        pot_changed=False #initial assumption
-        new_val=Read_ADC(adc_used, SPI_CLK, SPI_MOSI, SPI_MISO, SPI_CS)
-        diff_val=new_val-old_val
-        pub.publish("Pot Val : " +str(new_val))
-        if(diff_val>tolerance):
-            pot_changed=True
-        if(pot_changed):
-            ArmMotor1.targetAngleM1=new_val*360/31 #Mapping 360 to 3.3 voltage
-            ArmMotor1.update()
-            #pub.publish("Set Target Angle to " + str(ArmMotor1.targetAngleM1))
-            rospy.loginfo("Set Target Angle to " + str(ArmMotor1.targetAngleM1))
-        old_val=new_val
+        roboclaw1.update_rpm_1()
+        roboclaw1.pub_curr(pub1,"roboclaw1")
+        roboclaw1.update_rpm_2()
+
+        #roboclaw2.update_rpm_1()
+        #roboclaw2.update_rpm_2()
         r_time.sleep()
-GPIO.cleanup()
+
+    roboclaw1.claw.ForwardM1(0)
+    roboclaw1.claw.ForwardM2(0)
+    #roboclaw2.claw.ForwardM1(0)
+    #roboclaw2.claw.ForwardM2(0)
