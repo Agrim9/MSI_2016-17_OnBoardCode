@@ -1,9 +1,9 @@
 #include <ros/ros.h>
 #include <std_msgs/Float64MultiArray.h>
-
+x
 ros::Publisher arm_pub;
 
-void armCallback(const std_msgs::Float64MultiArray::ConstPtr& msg) {
+void armCallback(std_msgs::Float64MultiArray msg) {
 
 	std::vector<double> inp = msg -> data;
 	float basemotor = inp[2];
@@ -15,12 +15,12 @@ void armCallback(const std_msgs::Float64MultiArray::ConstPtr& msg) {
 
 	std::vector<double> out(6, 0);
 	
-	out[1] = basemotor;
-	out[2] = shoulderactuator;
-	out[3] = elbowmotor;
-	out[4] = pitchmotor;
-	out[5] = rollmotor;
-	out[6] = grippermotor;
+	out[0] = basemotor;
+	out[1] = shoulderactuator;
+	out[2] = elbowmotor;
+	out[3] = pitchmotor;
+	out[4] = rollmotor;
+	out[5] = grippermotor;
 
 	std_msgs::Float64MultiArray outMsg;
 	outMsg.data = out;
