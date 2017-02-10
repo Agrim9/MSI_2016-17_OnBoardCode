@@ -1,6 +1,6 @@
 #include <ros/ros.h>
 #include <std_msgs/Float64MultiArray.h>
-x
+
 ros::Publisher arm_pub;
 
 void armCallback(std_msgs::Float64MultiArray msg) {
