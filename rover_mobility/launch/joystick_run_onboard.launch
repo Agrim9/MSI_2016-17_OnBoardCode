@@ -1,6 +1,0 @@
-<launch>
-	<node pkg="rover_mobility" name="mobility_driver" type="mobility_driver" output="screen" required="true" />
-	<node pkg="rover_mobility" name="joystick_run" type="joystick_run" output="screen" required="true" />
-	<node pkg="rosserial_python" name="rosserialpy" type="serial_node.py" required="false" args="/dev/ttyACM0" />
-	<node pkg="joy" name="joy_node" type="joy_node" required="true" output="screen" />
-</launch>

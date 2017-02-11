@@ -1,0 +1,5 @@
+<launch>
+	<node pkg="rover_mobility" name="mobility_driver" type="mobility_driver" output="screen" required="true" /> 
+	<node pkg="rover_mobility" name="steer_command" type="steer_command.py" output="screen" required="true"/>
+	<!--<node pkg="rover_mobility" name="RPi_Drive" type="RPi_Drive.py" output="screen" required="true" />-->
+</launch>

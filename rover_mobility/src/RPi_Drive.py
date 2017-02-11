@@ -29,9 +29,9 @@ def drive_callback(inp):
 
 
 if __name__ == "__main__":
-    rospy.init_node("roboclaw_node")
+    rospy.init_node("drive_node")
     rospy.loginfo("Starting Drive Node")
-    rospy.Subscriber("/rover/ard_directives", Float64MultiArray, drive_callback)
+    rospy.Subscriber("/rover/drive_directives", Float64MultiArray, drive_callback)
 
     while not rospy.is_shutdown():
         p1 = Process(target=Motor1.update())
