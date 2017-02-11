@@ -1,6 +1,6 @@
 #!/usr/bin/env python
+#Yo 
 from math import pi, cos, sin
-
 import diagnostic_msgs
 import diagnostic_updater
 from roboclaw import RoboClaw
@@ -19,7 +19,7 @@ from serial.serialutil import SerialException as SerialException
 
 class SteerClaw:
 
-    def __init__(self, address, dev_name, baud_rate, name, kp1 = 0.15, kp2=0.15,ki1=0.15,ki2=0.15,kd1=0.8,kd2=0.8,int_windout1=50,int_windout2=50, qpps1 = 5.34, qpps2 = 5.34, deadzone1 = 30, deadzone2 = 20, sample_time=0.1, last_time=0.00, current_time=0.00):
+    def __init__(self, address, dev_name, baud_rate, name, kp1 = 20, kp2=20,ki1=40,ki2=40,kii1=60,kii2=60,kd1=20,kd2=20,iint_windout1=400,iint_windout2=400,int_windout1=200,int_windout2=200, qpps1 = 5.34, qpps2 = 5.34, deadzone1 = 2, deadzone2 = 2, sample_time=0.1, last_time=0.00, current_time=0.00):
         self.ERRORS = {0x0000: (diagnostic_msgs.msg.DiagnosticStatus.OK, "Normal"),
         0x0001: (diagnostic_msgs.msg.DiagnosticStatus.WARN, "M1 over current"),
         0x0002: (diagnostic_msgs.msg.DiagnosticStatus.WARN, "M2 over current"),
@@ -49,6 +49,10 @@ class SteerClaw:
         self.ki2 = ki2
         self.kd1 = kd1
         self.kd2 = kd2
+        self.kii1=kii1
+        self.kii2=kii2
+        self.iint_windout1=iint_windout1
+        self.iint_windout2=iint_windout2
         self.qpps1 = qpps1
         self.qpps2 = qpps2
         self.deadzone1 = deadzone1
@@ -65,6 +69,8 @@ class SteerClaw:
         self.PTerm2=0.00
         self.ITerm2=0.00
         self.DTerm2=0.00
+        self.IIterm1=0.00
+        self.IIterm2=0.00
         self.delta_error1=0.00
         self.delta_error2=0.00
         self.diff1=0.00
@@ -79,13 +85,22 @@ class SteerClaw:
         self.last_Rpm2=0.00
         self.last_enc1pos = 0.00
         self.last_enc2pos = 0.00
+        self.lastIIerr1=0.00
+        self.lastIIerr2=0.00
+        self.diffIIterm1=0.00
+        self.diffIIterm2=0.00
 
     def pub_pot(self, pub, claw_name):
         pot_val1 = self.claw.ReadEncM1()
         pot_val2 = self.claw.ReadEncM2()
         pub.publish(claw_name+"| Pot1 Val :" +str(pot_val1) + "| Pot2 Val :" +str(pot_val2))
 
+    def pub_curr(self,pub,claw_name):
+        curr_val = self.claw.ReadCurrents()
+        pub.publish(claw_name+"| Curr1 Val :" +str(curr_val[1]) + "| Curr2 Val :" +str(curr_val[2]))
+
     def update_rpm_1(self):
+
             self.current_time = time.time()
             delta_time = self.current_time - self.last_time
             if (delta_time >= self.sample_time):
@@ -96,6 +111,14 @@ class SteerClaw:
                 self.delta_error1 = self.diff1 - self.last_Rpm1
                 self.PTerm1 = self.diff1 #Pterm
                 self.ITerm1+=self.diff1*delta_time
+                if(self.lastIIerr1!=0):
+                    self.diffIIterm1=self.ITerm1-self.lastIIerr1
+                    self.IIterm1+=self.diffIIterm1*delta_time
+                if (self.IIterm1 < -self.iint_windout1):
+                    self.IIterm1 = -self.iint_windout1
+                elif (self.IIterm1 > self.iint_windout1):
+                    self.IIterm1 = self.iint_windout1
+                
                 if (self.ITerm1 < -self.int_windout1):
                     self.ITerm1 = -self.int_windout1
                 elif (self.ITerm1 > self.int_windout1):
@@ -105,8 +128,8 @@ class SteerClaw:
                 self.last_error1 = self.diff1
                 self.last_Rpm1 = self.current_Rpm1
                 self.last_enc1pos = self.enc1Pos
-
-                velM1 = int((self.kp1*self.PTerm1) + (self.ki1 * self.ITerm1) + (self.kd1 * self.DTerm1))
+                self.lastIIerr1=self.ITerm1
+                velM1 = int((self.kp1*self.PTerm1) + (self.ki1 * self.ITerm1) + (self.kd1 * self.DTerm1)+(self.kii1*self.IIterm1))
 
                 if self.current_Rpm1 < (self.finalRpm1Val - self.deadzone1):
                     self.claw.ForwardM1(min(255, velM1))
@@ -126,6 +149,14 @@ class SteerClaw:
                 self.delta_error2 = self.diff2 - self.last_Rpm2
                 self.PTerm2 = self.diff2 #Pterm
                 self.ITerm2+=self.diff2*delta_time
+                if(self.lastIIerr2!=0):
+                    self.diffIIterm2=self.ITerm2-self.lastIIerr2
+                    self.IIterm2+=self.diffIIterm2*delta_time
+                if (self.IIterm2 < -self.iint_windout2):
+                    self.IIterm2 = -self.iint_windout2
+                elif (self.IIterm2 > self.iint_windout2):
+                    self.IIterm2 = self.iint_windout2
+        
                 if (self.ITerm2 < -self.int_windout2):
                     self.ITerm2 = -self.int_windout2
                 elif (self.ITerm2 > self.int_windout2):
@@ -136,11 +167,12 @@ class SteerClaw:
                 self.last_error2 = self.diff2
                 self.last_Rpm2 = self.current_Rpm2
                 self.last_enc2pos = self.enc2Pos
-                velM2 = int((self.kp2*self.PTerm2) + (self.ki2 * self.ITerm2) + (self.kd2 * self.DTerm2))
+                self.lastIIerr2=self.ITerm2
+                velM2 = int((self.kp2*self.PTerm2) + (self.ki2 * self.ITerm2) + (self.kd2 * self.DTerm2)+(self.kii2*self.IIterm2))
                 if self.current_Rpm2 < (self.finalRpm2Val - self.deadzone2):
-                    self.claw.ForwardM2(min(255, velM2))
+                    self.claw.ForwardM2(min(125, velM2))
                 elif self.current_Rpm2 > (self.finalRpm2Val + self.deadzone2):
-                    self.claw.BackwardM2(min(255, -velM2))
+                    self.claw.BackwardM2(min(125, -velM2))
                 else:
                     self.claw.ForwardM2(0)
 
@@ -159,18 +191,18 @@ def steer_callback(inp):
     actuator_lock = inp.data[1]
     
     if actuator_lock == 1:
-        roboclaw1.targetRpm1 = 150
+        roboclaw1.targetRpm1 = 230
     elif actuator_lock == -1:
-        roboclaw1.targetRpm1 = -150
+        roboclaw1.targetRpm1 = -230
     else: 
         roboclaw1.targetRpm1 = 0
 
     elbowmotor_lock = inp.data[2]
     
     if elbowmotor_lock == 1:
-        roboclaw1.targetRpm2 = 150
+        roboclaw1.targetRpm2 = 230
     elif elbowmotor_lock == -1:
-        roboclaw1.targetRpm2 = -150
+        roboclaw1.targetRpm2 = -230
     else:
         roboclaw1.targetRpm2 = 0
     
@@ -198,6 +230,7 @@ if __name__ == "__main__":
     rospy.init_node("roboclaw_node")
     rospy.loginfo("Starting steer node")
     pub = rospy.Publisher('Pot_Val', String, queue_size=10)
+    pub1 = rospy.Publisher('Curr_Val', String, queue_size=10)
     rospy.Subscriber("/rover/arm_directives", Float64MultiArray, steer_callback)
     
     r_time = rospy.Rate(1)
@@ -213,7 +246,7 @@ if __name__ == "__main__":
 
     for i in range(20):
         try:
-            roboclaw1 = SteerClaw(0x80, "/dev/roboclaw_a1", 9600, "BaseClaw")
+            roboclaw1 = SteerClaw(0x80, "/dev/ttyACM0", 9600, "BaseClaw")
         except SerialException:
             rospy.logwarn("Could not connect to Arm RoboClaw1, retrying...")
             r_time.sleep()
@@ -228,7 +261,9 @@ if __name__ == "__main__":
 
     while not rospy.is_shutdown():
         roboclaw1.update_rpm_1()
+        roboclaw1.pub_curr(pub1,"roboclaw1")
         roboclaw1.update_rpm_2()
+
         #roboclaw2.update_rpm_1()
         #roboclaw2.update_rpm_2()
         r_time.sleep()

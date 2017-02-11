@@ -3,7 +3,7 @@
 
 ros::Publisher arm_pub;
 
-void armCallback(std_msgs::Float64MultiArray msg) {
+void armCallback(const std_msgs::Float64MultiArray::ConstPtr& msg) {
 
 	std::vector<double> inp = msg -> data;
 	float basemotor = inp[2];
