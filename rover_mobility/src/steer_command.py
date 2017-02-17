@@ -223,7 +223,7 @@ if __name__ == "__main__":
 
 	for i in range(20):
 		try:
-			roboclaw2 = SteerClaw(0x81, "/dev/roboclaw2", 9600, "LeftClaw")
+			roboclaw2 = SteerClaw(0x80, "/dev/roboclaw2", 9600, "LeftClaw")
 		except SerialException:
 			rospy.logwarn("Could not connect to RoboClaw2, retrying...")
 			r_time.sleep()
@@ -233,7 +233,7 @@ if __name__ == "__main__":
 	
 	for i in range(20):
 		try:
-			roboclaw1 = SteerClaw(0x80, "/dev/roboclaw1", 9600, "RightClaw")
+			roboclaw1 = SteerClaw(0x81, "/dev/roboclaw1", 9600, "RightClaw")
 		except SerialException:
 			rospy.logwarn("Could not connect to RoboClaw1, retrying...")
 			r_time.sleep()
