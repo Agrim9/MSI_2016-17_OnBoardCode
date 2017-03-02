@@ -1,8 +1,11 @@
 #!/usr/bin/env python
-from math import pi, cos, sin
+PACKAGE = 'dynamic_tutorials'
+import roslib;roslib.load_manifest(PACKAGE)
 
+from math import pi, cos, sin
 import diagnostic_msgs
 import diagnostic_updater
+import dynamic_reconfigure.client
 from roboclaw import RoboClaw
 import rospy
 import tf
@@ -25,7 +28,7 @@ plt.ion()
 plt.show()
 class SteerClaw:
 
-    def __init__(self, address, dev_name, baud_rate, name, kp1 = 0.15, kp2=0.1,ki1=0.15,ki2=0.1,kd1=1.2,kd2=0.8,kii1=0.15,kii2=0.1,int_windout1=50,int_windout2=50, iint_windout=20, qpps1 = 5.34, qpps2 = 5.34, deadzone1 = 30, deadzone2 = 20, kon1 = 0, kon2 = 0, sample_time=0.1, last_time=0.00, curren_time=0.00):
+    def __init__(self, address, dev_name, baud_rate, name, kp1 = 0.2, kp2=0.15,ki1=0.1,ki2=0.1,kd1=1.2,kd2=1,kii1=0.1,kii2=0.1,int_windout1=50,int_windout2=50, iint_windout=20, qpps1 = 5.34, qpps2 = 5.34, deadzone1 = 30, deadzone2 = 20, kon1 = 0, kon2 = 0, sample_time=0.1, last_time=0.00, curren_time=0.00):
 		self.ERRORS = {0x0000: (diagnostic_msgs.msg.DiagnosticStatus.OK, "Normal"),
 		0x0001: (diagnostic_msgs.msg.DiagnosticStatus.WARN, "M1 over current"),
 		0x0002: (diagnostic_msgs.msg.DiagnosticStatus.WARN, "M2 over current"),
@@ -202,7 +205,7 @@ class SteerClaw:
 
 
 
-def steer_callback(inp):
+def difdrive_callback(inp):
 
 	roboclaw1.targetAngleM1 = inp.data[6]
 	roboclaw1.targetAngleM2 = inp.data[7]
@@ -213,13 +216,8 @@ def steer_callback(inp):
 
 if __name__ == "__main__":
 
-	rospy.init_node("steer_node")
-	rospy.loginfo("Starting steer node")
-
-	rospy.Subscriber("/rover/drive_directives", Float64MultiArray, steer_callback)
-	rospy.loginfo("I'm here")
-
-	r_time = rospy.Rate(1)
+	rospy.init_node("DifferentialDrive_node")
+	rospy.loginfo("Starting Differential Drive node")
 
 	for i in range(20):
 		try:
@@ -228,7 +226,6 @@ if __name__ == "__main__":
 			rospy.logwarn("Could not connect to RoboClaw2, retrying...")
 			r_time.sleep()
 	rospy.loginfo("Connected to RoboClaw2")
-	print "RoboClaw2 is connected"
 
 	
 	for i in range(20):
@@ -239,25 +236,18 @@ if __name__ == "__main__":
 			r_time.sleep()
 	rospy.loginfo("Connected to RoboClaw1")
 
-
-	r_time = rospy.Rate(5)
 	roboclaw1.claw.ForwardM1(0)
 	roboclaw1.claw.ForwardM2(0)
 	roboclaw2.claw.ForwardM1(0)
 	roboclaw2.claw.ForwardM2(0)
-
+	
 	roboclaw1.targetAngleM1 = 0
 	roboclaw1.targetAngleM2 = 0
 	roboclaw2.targetAngleM1 = 0
 	roboclaw2.targetAngleM2 = 0
 
 
-	while not rospy.is_shutdown():
-		roboclaw1.update()
-		roboclaw2.update()
-		r_time.sleep()
-
-	roboclaw1.claw.ForwardM1(0)
-	roboclaw1.claw.ForwardM2(0)
-	roboclaw2.claw.ForwardM1(0)
-	roboclaw2.claw.ForwardM2(0)
+	rospy.Subscriber("/rover/drive_directives", Float64MultiArray, difdrive_callback,(roboclaw1,roboclaw2))
+	
+	rospy.spin()
+	
