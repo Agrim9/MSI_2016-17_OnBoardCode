@@ -1,11 +1,8 @@
 #!/usr/bin/env python
-PACKAGE = 'dynamic_tutorials'
-import roslib;roslib.load_manifest(PACKAGE)
 
 from math import pi, cos, sin
 import diagnostic_msgs
 import diagnostic_updater
-import dynamic_reconfigure.client
 from roboclaw import RoboClaw
 import rospy
 import tf

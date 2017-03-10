@@ -1,5 +1,4 @@
 #!/usr/bin/env python
-#Yo 
 from math import pi, cos, sin
 import diagnostic_msgs
 import diagnostic_updater
@@ -9,17 +8,24 @@ import tf
 from geometry_msgs.msg import Quaternion, Twist
 from nav_msgs.msg import Odometry
 from std_msgs.msg import Float64MultiArray
+from std_msgs.msg import Float32MultiArray
 from std_msgs.msg import String
 import time
 import matplotlib.pyplot as plt
 import numpy as np
+import thread
 from scipy.interpolate import spline
 
 from serial.serialutil import SerialException as SerialException
 
+plt.ion()
+ax1=plt.axes()
+ax1.set_ylim(0,2048)
+enc1plotr, = plt.plot([0]*50,color='blue')
+ip_enc1plotr, = plt.plot([0]*50,color='green',linestyle='dotted')
 class SteerClaw:
 
-    def __init__(self, address, dev_name, baud_rate, name, kp1 = 20, kp2=20,ki1=40,ki2=40,kii1=60,kii2=60,kd1=20,kd2=20,iint_windout1=400,iint_windout2=400,int_windout1=200,int_windout2=200, qpps1 = 5.34, qpps2 = 5.34, deadzone1 = 2, deadzone2 = 2, sample_time=0.1, last_time=0.00, current_time=0.00):
+    def __init__(self, address, dev_name, baud_rate, name, kp1 = 3, kp2=3,ki1=40,ki2=40,kii1=80,kii2=80,kd1=2,kd2=2,iint_windout1=400,iint_windout2=400,int_windout1=200,int_windout2=200, deadzone1 = 2, deadzone2 = 2, sample_time=0.1, last_time=0.00, current_time=0.00):
         self.ERRORS = {0x0000: (diagnostic_msgs.msg.DiagnosticStatus.OK, "Normal"),
         0x0001: (diagnostic_msgs.msg.DiagnosticStatus.WARN, "M1 over current"),
         0x0002: (diagnostic_msgs.msg.DiagnosticStatus.WARN, "M2 over current"),
@@ -53,8 +59,6 @@ class SteerClaw:
         self.kii2=kii2
         self.iint_windout1=iint_windout1
         self.iint_windout2=iint_windout2
-        self.qpps1 = qpps1
-        self.qpps2 = qpps2
         self.deadzone1 = deadzone1
         self.deadzone2 = deadzone2
         self.int_windout1=int_windout1
@@ -89,10 +93,12 @@ class SteerClaw:
         self.lastIIerr2=0.00
         self.diffIIterm1=0.00
         self.diffIIterm2=0.00
+        self.enc1PosData=[0]*50
+        self.ip_enc1PosDatar=[0]*50
 
     def pub_pot(self, pub, claw_name):
-        pot_val1 = self.claw.ReadEncM1()
-        pot_val2 = self.claw.ReadEncM2()
+        pot_val1 = self.claw.ReadEncM1()[1]
+        pot_val2 = self.claw.ReadEncM2()[1]
         pub.publish(claw_name+"| Pot1 Val :" +str(pot_val1) + "| Pot2 Val :" +str(pot_val2))
 
     def pub_curr(self,pub,claw_name):
@@ -130,7 +136,10 @@ class SteerClaw:
                 self.last_enc1pos = self.enc1Pos
                 self.lastIIerr1=self.ITerm1
                 velM1 = int((self.kp1*self.PTerm1) + (self.ki1 * self.ITerm1) + (self.kd1 * self.DTerm1)+(self.kii1*self.IIterm1))
-
+                self.enc1PosData.append(velM1)
+                self.ip_enc1PosDatar.append(self.targetRpm1)
+                del self.ip_enc1PosDatar[0]
+                del self.enc1PosData[0]
                 if self.current_Rpm1 < (self.finalRpm1Val - self.deadzone1):
                     self.claw.ForwardM1(min(255, velM1))
                 elif self.current_Rpm1 > (self.finalRpm1Val + self.deadzone1):
@@ -224,6 +233,17 @@ def steer_callback(inp):
     #else: 
     #    roboclaw2.targetRpm2 = 0
 
+def reconfig_callback(inp):
+    roboclaw1.kp1=inp.data[0]
+    roboclaw1.kp2=inp.data[0]
+    roboclaw1.ki1=inp.data[1]
+    roboclaw1.ki2=inp.data[1]
+    roboclaw1.kd1=inp.data[2]
+    roboclaw1.kd2=inp.data[2]
+    roboclaw1.kii1=inp.data[3]
+    roboclaw1.kii2=inp.data[3]
+    rospy.loginfo("Reconfig Acknowledged : ")
+    rospy.loginfo(inp)
 
 if __name__ == "__main__":
 
@@ -232,7 +252,7 @@ if __name__ == "__main__":
     pub = rospy.Publisher('Pot_Val', String, queue_size=10)
     pub1 = rospy.Publisher('Curr_Val', String, queue_size=10)
     rospy.Subscriber("/rover/arm_directives", Float64MultiArray, steer_callback)
-    
+    rospy.Subscriber("/arm_conf_mssg",Float32MultiArray,reconfig_callback)
     r_time = rospy.Rate(1)
 
     #for i in range(20):
@@ -246,7 +266,7 @@ if __name__ == "__main__":
 
     for i in range(20):
         try:
-            roboclaw1 = SteerClaw(0x80, "/dev/ttyACM0", 9600, "BaseClaw")
+            roboclaw1 = SteerClaw(0x81, "/dev/ttyACM0", 9600, "BaseClaw")
         except SerialException:
             rospy.logwarn("Could not connect to Arm RoboClaw1, retrying...")
             r_time.sleep()
@@ -258,14 +278,17 @@ if __name__ == "__main__":
     roboclaw1.claw.ForwardM2(0)
     #roboclaw2.claw.ForwardM1(0)
     #roboclaw2.claw.ForwardM2(0)
+    
 
     while not rospy.is_shutdown():
         roboclaw1.update_rpm_1()
-        roboclaw1.pub_curr(pub1,"roboclaw1")
         roboclaw1.update_rpm_2()
-
-        #roboclaw2.update_rpm_1()
-        #roboclaw2.update_rpm_2()
+        enc1plotr.set_xdata(np.arange(len(roboclaw1.enc1PosData)))
+        enc1plotr.set_ydata(roboclaw1.enc1PosData)  # update the data
+        ip_enc1plotr.set_xdata(np.arange(len(roboclaw1.ip_enc1PosDatar)))
+        ip_enc1plotr.set_ydata(roboclaw1.ip_enc1PosDatar)  # update the data
+        plt.draw()
+        roboclaw1.pub_pot(pub,"roboclaw1")
         r_time.sleep()
 
     roboclaw1.claw.ForwardM1(0)

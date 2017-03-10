@@ -60,11 +60,5 @@ Plotting done using matplotlib. Used threads to get it done in real time. One im
 ![PID_plot](control_sys_plot.jpg)
 </center>
 
-## Issues with Code 
-* [ ] Handling exception when input is recieved and steer node not started 
-* [ ] Dynamic Reconfiguring of kp,ki and kd
-* [ ] Joystick insanity check code
-
 ## Report of [Terrain Traversal Tests](https://docs.google.com/document/d/133miP4SbEnp0nfhqepswal2rMCrexqwS61UNtjvPTYw/edit?usp=sharing)
 
-## Report of [Initial Arm Testing](https://docs.google.com/document/d/1WbRP496lPkaxIiH9_dKi-q-lfnnbIrKUq19Ywei3qDM/edit?usp=drivesdk)
