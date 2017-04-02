@@ -52,13 +52,8 @@ Mavros package for extracting data from Ardu pilot MEGA (GPS module Ublox Neo 7m
 
 ## Plotting Real Time data on control system using ROS
 
-</br>
-Plotting done using matplotlib. Used threads to get it done in real time. One important thing to note was that **matplotlib** functions always need to be used in main thread only. Not following this causes [Main thread is not in main loop](http://stackoverflow.com/questions/16016102/matplotlib-and-multiprocessing-runtimeerror) error. For bypassing this issue, run the PID control loop concurrently in different forked threads, and have the plotting code in main thread.
-</br>
+Plotting done using matplotlib. Used threads to get it done in real time. One important thing to note was that **matplotlib** functions always need to be used in main thread only. Not following this causes [Main thread is not in main loop](http://stackoverflow.com/questions/16016102/matplotlib-and-multiprocessing-runtimeerror) error. For bypassing this issue, run the PID control loop concurrently in different forked threads, and have the plotting code in main thread. </br>
 
-<center>
-![PID_plot](control_sys_plot.jpg)
-</center>
+ ![PID_plot](control_sys_plot.jpg)
 
-## Report of [Terrain Traversal Tests](https://docs.google.com/document/d/133miP4SbEnp0nfhqepswal2rMCrexqwS61UNtjvPTYw/edit?usp=sharing)
 
