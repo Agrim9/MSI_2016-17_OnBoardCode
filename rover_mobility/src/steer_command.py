@@ -8,7 +8,7 @@ import rospy
 import tf
 from geometry_msgs.msg import Quaternion, Twist
 from nav_msgs.msg import Odometry
-from std_msgs.msg import Float64MultiArray, Float64
+from std_msgs.msg import Float64MultiArray
 import time
 import matplotlib.pyplot as plt
 import numpy as np
@@ -101,10 +101,6 @@ class SteerClaw:
         if (delta_time >= self.sample_time):
 			time_vec.append(self.current_time)
 			self.enc1Pos = self.claw.ReadEncM1()[1]
-			if(name=="RightClaw"):
-				EncWheel1.publish(self.enc1Pos)
-			else
-				EncWheel3.publish(self.enc1Pos)
 			self.finalEnc1Val = int(self.qpps1*self.targetAngleM1)
 			self.diff1 = self.finalEnc1Val - self.enc1Pos  #Error in 1
             
@@ -153,10 +149,6 @@ class SteerClaw:
 
 			time_vec.append(self.current_time)
 			self.enc2Pos = -self.claw.ReadEncM2()[1]
-			if(name=="RightClaw"):
-				EncWheel2.publish(self.enc2Pos)
-			else
-				EncWheel4.publish(self.enc4Pos)
 			self.finalEnc2Val = -int(self.qpps2*self.targetAngleM2)
 			self.diff2 = self.finalEnc2Val - self.enc2Pos  #Error in 1
 			self.delta_error2 = self.diff2 - self.last_error2
@@ -226,11 +218,6 @@ if __name__ == "__main__":
 
 	rospy.Subscriber("/rover/drive_directives", Float64MultiArray, steer_callback)
 	rospy.loginfo("I'm here")
-
-	EncWheel1 = rospy.Publisher('Encoder_Wheel1', Float64, queue_size=10)
-	EncWheel2 = rospy.Publisher('Encoder_Wheel2', Float64, queue_size=10)
-	EncWheel3 = rospy.Publisher('Encoder_Wheel3', Float64, queue_size=10)
-	EncWheel4 = rospy.Publisher('Encoder_Wheel4', Float64, queue_size=10)
 
 	r_time = rospy.Rate(1)
 
