@@ -96,22 +96,22 @@ class DifferentialClaw:
             self.dir2=0
         
         elif(inp.data[0]>10):
-            self.speed=inp.data[0]*inp.data[0]/300
+            self.speed=inp.data[0]*inp.data[0]/800
             self.dir1=-1
             self.dir2=-1
 
         elif(inp.data[0]<-10):
-            self.speed=inp.data[0]*inp.data[0]/300
+            self.speed=inp.data[0]*inp.data[0]/800
             self.dir1=1
             self.dir2=1
             
         elif(inp.data[6]>10):
-            self.speed=inp.data[6]*25*inp.data[6]/300
+            self.speed=inp.data[6]*25*inp.data[6]/800
             self.dir1=1
             self.dir2=-1
             
         elif(inp.data[6]<-10):
-            self.speed=inp.data[6]*25*inp.data[6]/300
+            self.speed=inp.data[6]*25*inp.data[6]/800
             self.dir1=-1
             self.dir2=1
             
@@ -123,7 +123,7 @@ if __name__ == "__main__":
     r_time=rospy.Rate(1)
     for i in range(20):
         try:
-            roboclaw2 = RoboClaw(0x80, "/dev/ttyACM1", 9600)
+            roboclaw2 = RoboClaw(0x81, "/dev/roboclaw2", 9600)
         except SerialException:
             rospy.logwarn("Could not connect to RoboClaw2, retrying...")
             r_time.sleep()
@@ -132,7 +132,7 @@ if __name__ == "__main__":
     
     for i in range(20):
         try:
-            roboclaw1 = RoboClaw(0x81, "/dev/ttyACM0", 9600)
+            roboclaw1 = RoboClaw(0x80, "/dev/roboclaw1", 9600)
         except SerialException:
             rospy.logwarn("Could not connect to RoboClaw1, retrying...")
             r_time.sleep()
