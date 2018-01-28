@@ -10,6 +10,7 @@ import tf
 from geometry_msgs.msg import Quaternion, Twist
 from nav_msgs.msg import Odometry
 from std_msgs.msg import Float64MultiArray
+from std_msgs.msg import Float32MultiArray
 import time
 import matplotlib.pyplot as plt
 import numpy as np
@@ -47,27 +48,27 @@ class DifferentialClaw:
     
     def moveFwd(self):
         print("HEre")
-        self.claw1.ForwardM1(min(255,int(self.speed)))
-        self.claw1.ForwardM2(min(255,int(self.speed)))    
+        self.claw1.BackwardM1(min(255,int(self.speed)))
+        self.claw1.BackwardM2(min(255,int(self.speed)))    
         self.claw2.ForwardM1(min(255,int(self.speed)))
-        self.claw2.ForwardM2(min(255,int(self.speed)))    
+        self.claw2.BackwardM2(min(255,int(self.speed)))    
 
     def moveBkwd(self):
-        self.claw1.BackwardM1(min(255,int(self.speed)))
-        self.claw1.BackwardM2(min(255,int(self.speed)))    
+        self.claw1.ForwardM1(min(255,int(self.speed)))
+        self.claw1.ForwardM2(min(255,int(self.speed)))    
         self.claw2.BackwardM1(min(255,int(self.speed)))
-        self.claw2.BackwardM2(min(255,int(self.speed)))    
+        self.claw2.ForwardM2(min(255,int(self.speed)))    
     
-    def moveR(self):
+    def moveL(self):
         self.claw1.BackwardM1(min(255,int(self.speed)))
         self.claw1.ForwardM2(min(255,int(self.speed)))
-        self.claw2.BackwardM1(min(255,int(self.speed)))
+        self.claw2.ForwardM1(min(255,int(self.speed)))
         self.claw2.ForwardM2(min(255,int(self.speed)))
 
-    def moveL(self):
+    def moveR(self):
         self.claw1.ForwardM1(min(255,int(self.speed)))
         self.claw1.BackwardM2(min(255,int(self.speed)))    
-        self.claw2.ForwardM1(min(255,int(self.speed)))
+        self.claw2.BackwardM1(min(255,int(self.speed)))
         self.claw2.BackwardM2(min(255,int(self.speed)))
 
     def rest(self):
@@ -76,7 +77,7 @@ class DifferentialClaw:
         self.claw2.ForwardM1(0)
         self.claw2.ForwardM2(0)   
      
-    def update(self):
+    def update_steer(self):
         if(self.dir1==0 or self.dir2==-0):
             self.rest()        
         elif(self.dir1==1 and self.dir2==1):
