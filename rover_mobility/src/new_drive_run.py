@@ -1,0 +1,79 @@
+import new_drive_codes
+from roboclaw import RoboClaw
+import rospy
+import tf
+from std_msgs.msg import Float64MultiArray
+from sensor_msgs.msg import Joy
+import numpy as np
+import signal
+import sys
+from serial.serialutil import SerialException as SerialException
+
+#---------------------------------------------------- 
+#SIGINT Handler to escape loops. Use Ctrl-C to exit
+def sigint_handler(signal, frame):
+	sys.exit(0)
+#----------------------------------------------------
+
+
+#Used for running the rover using joystick
+#----------------------------------------------------
+#main program
+if __name__ == "__main__":
+
+	signal.signal(signal.SIGINT, sigint_handler)
+	rospy.init_node("Drive node")
+	rospy.loginfo("Starting drive node")
+	r_time = rospy.Rate(1)
+
+	#------------------------------------------------
+	#Trying to connect to roboclaw drivers 1 and 2
+	while(True):
+		try:
+			#frontClaw = RoboClaw(0x80, "/dev/frontClaw", 9600)
+			frontClaw = RoboClaw(0x80, "/dev/ttyACM0", 9600)   #Port locking still to be done
+			break;
+		except SerialException:
+			rospy.logwarn("Couldn't connect to RoboClaw1. trying again")
+			r_time.sleep()
+	rospy.loginfo("Connected to RoboClaw1")
+	while(True):
+		try:
+			#rearClaw = RoboClaw(0x80, "/dev/rearClaw", 9600)
+			rearClaw = RoboClaw(0x80, "/dev/ttyACM1", 9600)	#Port locking still to be done
+			break;
+		except SerialException:
+			rospy.logwarn("Couldn't connect to RoboClaw2. trying again")
+			r_time.sleep()
+	rospy.loginfo("Connected to RoboClaw2")
+	#connected---------------------------------------
+
+	#initialising New_Drive object-------------------
+	new_drive = New_Drive(frontClaw,rearClaw)
+	#added self.stop in __init__. Add seperately her if it doesnt work
+	#------------------------------------------------
+
+	#subscriber lines--------------------------------------------------
+	#ros::Subscriber joy_sub = _nh.subscribe("/joy", 100, joyCallback);
+	rospy.Subscriber("/joy",Joy,new_drive.drive_callback)
+	#-------------------------------------------------------------------
+	
+	#-------------------------------------------------------------------
+	#updating the received intructions
+	r_time_f=rospy.Rate(10)
+	stopped = False
+	while not rospy.is_shutdown():
+		if(stopped == False):
+			new_drive.update_steer()
+		else:
+			print("stopped due to excess current")	
+		#if(new_drive.current_limiter()):			#uncomment after setting current_threshold appropriately
+			print("CURRENT ERROR")
+			stopped = True
+			rospy.loginfo(new_drive.currents)
+		rospy.loginfo(new_drive.direction)
+		rospy.loginfo(new_drive.speed)
+		r_time_f.sleep()
+	#-------------------------------------------------------------------    
+	#left axes forward forward (as on 25th)
+	#right axes forward left (as on 25th)

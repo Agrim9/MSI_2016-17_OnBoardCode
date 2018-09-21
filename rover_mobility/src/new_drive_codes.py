@@ -1,5 +1,5 @@
 #!/usr/bin/env python
-
+#Contains codes for all drive related things. Imported in other codes for usage. 
 from roboclaw import RoboClaw
 import rospy
 import tf
@@ -9,7 +9,7 @@ import numpy as np
 import signal
 import sys
 from serial.serialutil import SerialException as SerialException
-
+import utm
 #---------------------------------------------------- 
 #SIGINT Handler to escape loops. Use Ctrl-C to exit
 def sigint_handler(signal, frame):
@@ -30,6 +30,9 @@ class New_Drive:
 		self.stop()
 		self.currents = [0,0,0,0]  #fl,fr,bl,br order of roboclaw currents
 		self.current_threshold = 100 #needs to be tuned while testing.
+		self.posx = 0.0
+		self.posy = 0.0
+		self.intialized = False
 
 	def fwd(self):
 		self.frontClaw.ForwardM1(self.speed)
@@ -104,6 +107,17 @@ class New_Drive:
 			else:
 				self.direction = "right"
 
+	def gps_callback(self,inp):
+		#code to get lat,lon from inp
+		a = from_latlon(lat,lon)
+		self.posx = a[0]
+		self.posy = a[1]
+		self.intialized = True
+
+	def imu_callback(self,inp):
+		#get imu input here
+		return				
+
 	def current_limiter(self):
 		(i,self.currents[0],self.currents[1]) = self.frontClaw.ReadCurrents()
 		(i,self.currents[2],self.currents[3]) = self.rearClaw.ReadCurrents()
@@ -116,63 +130,3 @@ class New_Drive:
 #---------------------------------------------------
 
 
-#----------------------------------------------------
-#main program
-if __name__ == "__main__":
-
-	signal.signal(signal.SIGINT, sigint_handler)
-	rospy.init_node("Drive node")
-	rospy.loginfo("Starting drive node")
-	r_time = rospy.Rate(1)
-
-	#------------------------------------------------
-	#Trying to connect to roboclaw drivers 1 and 2
-	while(True):
-		try:
-			#frontClaw = RoboClaw(0x80, "/dev/frontClaw", 9600)
-			frontClaw = RoboClaw(0x80, "/dev/ttyACM0", 9600)   #Port locking still to be done
-			break;
-		except SerialException:
-			rospy.logwarn("Couldn't connect to RoboClaw1. trying again")
-			r_time.sleep()
-	rospy.loginfo("Connected to RoboClaw1")
-	while(True):
-		try:
-			#rearClaw = RoboClaw(0x80, "/dev/rearClaw", 9600)
-			rearClaw = RoboClaw(0x80, "/dev/ttyACM1", 9600)	#Port locking still to be done
-			break;
-		except SerialException:
-			rospy.logwarn("Couldn't connect to RoboClaw2. trying again")
-			r_time.sleep()
-	rospy.loginfo("Connected to RoboClaw2")
-	#connected---------------------------------------
-
-	#initialising New_Drive object-------------------
-	new_drive = New_Drive(frontClaw,rearClaw)
-	#added self.stop in __init__. Add seperately her if it doesnt work
-	#------------------------------------------------
-
-	#subscriber lines--------------------------------------------------
-	#ros::Subscriber joy_sub = _nh.subscribe("/joy", 100, joyCallback);
-	rospy.Subscriber("/joy",Joy,new_drive.drive_callback)
-	#-------------------------------------------------------------------
-	
-	#-------------------------------------------------------------------
-	#updating the received intructions
-	r_time_f=rospy.Rate(10)
-	stopped = False
-	while not rospy.is_shutdown():
-		if(stopped == False):
-			new_drive.update_steer()
-		else:
-			print("stopped due to excess current")	
-		#if(new_drive.current_limiter()):			#uncomment after setting current_threshold appropriately
-			print("CURRENT ERROR")
-			stopped = True
-			rospy.loginfo(new_drive.currents)
-		rospy.loginfo(new_drive.direction)
-		rospy.loginfo(new_drive.speed)
-		r_time_f.sleep()
-	#-------------------------------------------------------------------    
-	#left axes forward forward (as on 25th)
-	#right axes forward left (as on 25th)
