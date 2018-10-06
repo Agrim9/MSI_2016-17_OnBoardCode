@@ -1,4 +1,5 @@
-import new_drive_codes
+#!/usr/bin/env python
+from new_drive_codes import *
 from roboclaw import RoboClaw
 import rospy
 import tf
@@ -30,8 +31,7 @@ if __name__ == "__main__":
 	#Trying to connect to roboclaw drivers 1 and 2
 	while(True):
 		try:
-			#frontClaw = RoboClaw(0x80, "/dev/frontClaw", 9600)
-			frontClaw = RoboClaw(0x80, "/dev/ttyACM0", 9600)   #Port locking still to be done
+			frontClaw = RoboClaw(0x80, "/dev/frontClaw", 9600)
 			break;
 		except SerialException:
 			rospy.logwarn("Couldn't connect to RoboClaw1. trying again")
@@ -39,8 +39,7 @@ if __name__ == "__main__":
 	rospy.loginfo("Connected to RoboClaw1")
 	while(True):
 		try:
-			#rearClaw = RoboClaw(0x80, "/dev/rearClaw", 9600)
-			rearClaw = RoboClaw(0x80, "/dev/ttyACM1", 9600)	#Port locking still to be done
+			rearClaw = RoboClaw(0x80, "/dev/rearClaw", 9600)
 			break;
 		except SerialException:
 			rospy.logwarn("Couldn't connect to RoboClaw2. trying again")

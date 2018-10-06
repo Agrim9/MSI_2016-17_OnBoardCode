@@ -9,7 +9,7 @@ import numpy as np
 import signal
 import sys
 from serial.serialutil import SerialException as SerialException
-import utm
+# import utm
 #---------------------------------------------------- 
 #SIGINT Handler to escape loops. Use Ctrl-C to exit
 def sigint_handler(signal, frame):
@@ -32,6 +32,8 @@ class New_Drive:
 		self.current_threshold = 100 #needs to be tuned while testing.
 		self.posx = 0.0
 		self.posy = 0.0
+		self.velx = 0.0
+		self.vely = 0.0
 		self.intialized = False
 
 	def fwd(self):
@@ -97,6 +99,7 @@ class New_Drive:
 			self.speed = int(min(255,axes[1]*axes[1]*(self.drive_scale)))	
 			if(axes[1] > 0):
 				self.direction = "backward"
+			else:	
 				self.direction = "forward"
 
 		elif (axes[3]>0.1 or axes[3]<-0.1):
@@ -109,12 +112,19 @@ class New_Drive:
 
 	def gps_callback(self,inp):
 		#code to get lat,lon from inp
+		lat = inp[0]
+		lon = inp[1]
 		a = from_latlon(lat,lon)
 		self.posx = a[0]
 		self.posy = a[1]
 		self.intialized = True
 
 	def imu_callback(self,inp):
+		dt = 0.001
+		self.velx = self.velx + inp[0]*dt
+		self.vely = self.vely + inp[1]*dt
+		self.posx = self.posx + self.velx*dt
+		self.posy = self.posy + self.vely*dt
 		#get imu input here
 		return				
 

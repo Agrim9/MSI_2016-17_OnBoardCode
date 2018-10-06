@@ -1,5 +1,5 @@
 <launch>
 	<node pkg="rover_mobility" name="rover_driver" type="rover_driver" output="screen" required="true" /> 
 	<!--<node pkg="rover_mobility" name="steer_command" type="steer_command.py" output="screen" required="true"/>-->
-	<node pkg="rover_mobility" name="Differential_Drive" type="Differential_Drive.py" output="screen" required="true" />
+	<node pkg="rover_mobility" name="a_rive" type="autonomous_drive.py" output="screen" required="true" />
 </launch>

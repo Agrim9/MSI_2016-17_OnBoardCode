@@ -130,7 +130,6 @@ include_directories(
 ## Declare a C++ executable
 include_directories(include ${catkin_INCLUDE_DIRS})
 
-add_executable(rover_driver src/rover_driver.cpp)
 
 
 ## Add cmake target dependencies of the executable
@@ -138,9 +137,9 @@ add_executable(rover_driver src/rover_driver.cpp)
 # add_dependencies(rover_mobility_node ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
 
 ## Specify libraries to link a library or executable target against
-target_link_libraries(rover_driver
-  ${catkin_LIBRARIES}
-)
+#target_link_libraries(
+#  ${catkin_LIBRARIES}
+#)
 
 
 

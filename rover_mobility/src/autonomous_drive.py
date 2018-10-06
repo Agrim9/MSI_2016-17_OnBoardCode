@@ -67,7 +67,7 @@ if __name__ == "__main__":\
 
 	#subscriber lines--------------------------------------------------
 	#ros::Subscriber joy_sub = _nh.subscribe("/joy", 100, joyCallback);
-	rospy.Subscriber("/gps",gps,new_drive.gps_callback)			#subscriber_id needed
+	rospy.Subscriber("/LatLon",gps,new_drive.gps_callback)			#subscriber_id needed
 	#rospy.Subscriber("/imu",imu,new_drive.imu_callback)
 	#-------------------------------------------------------------------
 
@@ -76,6 +76,7 @@ if __name__ == "__main__":\
 	r_time_f=rospy.Rate(10)
 	stopped = False
 	speed_const = 2		#change this to fine tune
+	stopping_distance = 5.0
 	while not rospy.is_shutdown():
 		while(new_drive.initialized == False):
 			print ("waiting for first_gps")
@@ -85,8 +86,9 @@ if __name__ == "__main__":\
 			if (distance <= stopping_distance):
 				stopped == True
 				new_drive.rest = True
-			else:	
-				new_drive.speed = speed_const * distance
+			else:
+				self.direction = "forward"	
+				new_drive.speed = speed_const * (distance-stopping_distance)
 				new_drive.update_steer()
 		else:
 			print("Arrived within range")	
