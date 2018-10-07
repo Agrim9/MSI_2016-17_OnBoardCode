@@ -3,17 +3,16 @@ from new_drive_codes import *
 from roboclaw import RoboClaw
 import rospy
 import tf
-from std_msgs.msg import Float64MultiArray
+from std_msgs.msg import Float64MultiArray,Float32MultiArray
 from sensor_msgs.msg import Joy
 import numpy as np
 import signal
 import sys
 from serial.serialutil import SerialException as SerialException
-import pdb
+
 #---------------------------------------------------- 
 #SIGINT Handler to escape loops. Use Ctrl-C to exit
 def sigint_handler(signal, frame):
-	np.save('/home/pi/heading_lists/head_list.npy',Drive.heading_list)
 	sys.exit(0)
 #----------------------------------------------------
 
@@ -56,6 +55,7 @@ if __name__ == "__main__":
 	#subscriber lines--------------------------------------------------
 	#ros::Subscriber joy_sub = _nh.subscribe("/joy", 100, joyCallback);
 	rospy.Subscriber("/joy",Joy,Drive.drive_callback)
+	rospy.Subscriber("/IMU",Float32MultiArray,Drive.imu_callback)
 	#-------------------------------------------------------------------
 	
 	#-------------------------------------------------------------------
@@ -67,12 +67,13 @@ if __name__ == "__main__":
 			Drive.update_steer()
 		else:
 			print("stopped due to excess current")	
-		#if(Drive.current_limiter()):			#uncomment after setting current_threshold appropriately
+		if(Drive.current_limiter()):			#uncomment after setting current_threshold appropriately
 			print("CURRENT ERROR")
 			stopped = True
 			rospy.loginfo(Drive.currents)
-		rospy.loginfo(Drive.direction)
-		rospy.loginfo(Drive.speed)
+		if(Drive.speed > 0):	
+			rospy.loginfo(Drive.direction)
+			rospy.loginfo(Drive.speed)
 		r_time_f.sleep()
 	#-------------------------------------------------------------------    
 	#left axes forward forward (as on 25th)
