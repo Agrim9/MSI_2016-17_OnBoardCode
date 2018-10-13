@@ -9,10 +9,13 @@ import numpy as np
 import signal
 import sys
 from serial.serialutil import SerialException as SerialException
+import pdb
 
 #---------------------------------------------------- 
 #SIGINT Handler to escape loops. Use Ctrl-C to exit
 def sigint_handler(signal, frame):
+	Drive.stop()
+	pdb.set_trace()
 	sys.exit(0)
 #----------------------------------------------------
 
@@ -68,7 +71,7 @@ if __name__ == "__main__":
 		else:
 			print("stopped due to excess current")	
 		if(Drive.current_limiter()):			#uncomment after setting current_threshold appropriately
-			print("CURRENT ERROR")
+			#print("CURRENT ERROR")
 			stopped = True
 			rospy.loginfo(Drive.currents)
 		if(Drive.speed > 0):	

@@ -11,10 +11,7 @@ import sys
 from serial.serialutil import SerialException as SerialException
 # import utm
 #---------------------------------------------------- 
-#SIGINT Handler to escape loops. Use Ctrl-C to exit
-def sigint_handler(signal, frame):
-	sys.exit(0)
-#----------------------------------------------------    
+
 
 class Drive:
 
@@ -30,14 +27,14 @@ class Drive:
 		self.turn_scale = 50
 		self.stop()
 		self.currents = [0,0,0,0]  #fl,fr,bl,br order of roboclaw currents
-		self.current_threshold = 1500 #needs to be tuned while testing.#1500 means 1500*(10 mA) = 15A
+		self.current_threshold = 2000 #needs to be tuned while testing.#1500 means 1500*(10 mA) = 15A
 		self.posx = 0.0
 		self.posy = 0.0
 		self.velx = 0.0
 		self.vely = 0.0
 		self.intialized = False
 		self.curr_heading = 0
-		self.final_heading = -160	#range is -180 to 180
+		self.final_heading = -60	#range is -180 to 180
 		self.prev_err=0
 		self.Iterm=0
 		self.Iterm_windout=0
@@ -136,7 +133,7 @@ class Drive:
 		print("Current Heading is :"+str(self.heading))
 		if(self.mode == "joystick"):
 			return	
-		angle_threshold = 5
+		angle_threshold = 3
 		# kp = 
 		# kd = 0
 		# ki = 0
@@ -145,6 +142,9 @@ class Drive:
 			self.speed = 0
 			self.rest = True
 			print("in threshold")
+			if((np.abs((np.array(self.heading_list[::-1][0:3])-self.final_heading))<angle_threshold).all()):
+				self.mode = "joystick"
+				print("control shifted to joystick")
 		elif(abs(angle_diff)  < 180):
 			self.rest = False
 			# Pterm =	angle_diff
@@ -152,7 +152,7 @@ class Drive:
 			# self.Iterm  = max(min(self.Iterm+angle_diff,self.Iterm_windout),-self.Iterm_windout)
 			# self.speed = int(abs(min(kp*Pterm+kd*Dterm+ki*self.Iterm ,255)))
 			self.speed = int(40*np.exp(-(abs(angle_diff)-20))+50 if abs(angle_diff)>20\
-			 else 50*np.exp((abs(angle_diff)-20))+40)
+			 else 70*np.exp((abs(angle_diff)-20)/4)+20)
 			if(angle_diff<0):
 				self.direction = "right"
 			else:
@@ -166,7 +166,7 @@ class Drive:
 			# Dterm = mod_angle_diff - self.prev_err
 			# self.Iterm  = max(min(self.Iterm+mod_angle_diff,self.Iterm_windout),-self.Iterm_windout)
 			self.speed = int(40*np.exp(-(abs(mod_angle_diff)-20))+50 if abs(mod_angle_diff)>20\
-			 else 50*np.exp((abs(mod_angle_diff)-20))+40)
+			 else 70*np.exp((abs(mod_angle_diff)-20)/4)+20)
 			if(angle_diff<0):
 				self.direction = "left"
 			else:
