@@ -123,15 +123,6 @@ class Drive:
 			else:
 				self.direction = "right"
 
-	def gps_callback(self,inp):
-		#code to get lat,lon from inp
-		lat = inp[0]
-		lon = inp[1]
-		a = from_latlon(lat,lon)
-		self.posx = a[0]
-		self.posy = a[1]
-		self.intialized = True
-
 	def imu_callback(self,inp):
 
 		self.heading = inp.data[2]*180/np.pi
@@ -156,10 +147,6 @@ class Drive:
 		elif(abs(angle_diff)  < 180):
 			self.converged = False
 			self.rest = False
-			# Pterm =	angle_diff
-			# Dterm = angle_diff - self.prev_err
-			# self.Iterm  = max(min(self.Iterm+angle_diff,self.Iterm_windout),-self.Iterm_windout)
-			# self.speed = int(abs(min(kp*Pterm+kd*Dterm+ki*self.Iterm ,255)))
 			self.speed = int(40*np.exp(-(abs(angle_diff)-20))+50 if abs(angle_diff)>20\
 			 else 70*np.exp((abs(angle_diff)-20)/4)+20)
 			if(angle_diff<0):
@@ -171,9 +158,6 @@ class Drive:
 		else:
 			self.rest = False
 			mod_angle_diff=360-abs(angle_diff)
-			# Pterm =	mod_angle_diff
-			# Dterm = mod_angle_diff - self.prev_err
-			# self.Iterm  = max(min(self.Iterm+mod_angle_diff,self.Iterm_windout),-self.Iterm_windout)
 			self.speed = int(40*np.exp(-(abs(mod_angle_diff)-20))+50 if abs(mod_angle_diff)>20\
 			 else 70*np.exp((abs(mod_angle_diff)-20)/4)+20)
 			if(angle_diff<0):
@@ -185,26 +169,24 @@ class Drive:
 		print(self.mode)
 		print(self.speed)
 		print(self.direction)
-		# dt = 0.001
-		# self.velx = self.velx + inp[0]*dt
-		# self.vely = self.vely + inp[1]*dt
-		# self.posx = self.posx + self.velx*dt
-		# self.posy = self.posy + self.vely*dt
-		#get imu input here
 		return
 
 	def twist_callback(self , inp):
-		twist_lin_k = 0
+		twist_lin_k = 5
 		lin_speed = inp.linear.x #Check which of the three is the linear speed
 		angle_rot = inp.angular.x #Check which of the three is angle of roattion 
 		if (angle_rot > self.angle_threshold):
-			self.final_heading = self.heading + angle_rot
+			self.final_heading = angle_rot #+ self.heading #Uncomment this if publishinf angle of rotation
 			#self.rest = False
-		elif (lin_speed > 10):
-			self.speed = twist_lin_k*lin_speed
-			#self.rest = False
-		#else:
-			#self.rest = True	
+		else:
+			if(lin_speed > 0):
+				self.speed = twist_lin_k*lin_speed
+				self.direction = 'forward'
+			else:	
+				self.rest = True
+				self.speed = 0
+				self.ack_pub.publish(3)
+				print ("reached_final_destination")	
 
 
 	def current_limiter(self):
