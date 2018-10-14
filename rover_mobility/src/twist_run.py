@@ -59,6 +59,7 @@ if __name__ == "__main__":
 	#ros::Subscriber joy_sub = _nh.subscribe("/joy", 100, joyCallback);
 	rospy.Subscriber("/joy",Joy,Drive.drive_callback)
 	rospy.Subscriber("/IMU",Float32MultiArray,Drive.imu_callback)
+	rospy.Subscriber("/twist_msg",Twist,Drive.twist_callback)
 	#-------------------------------------------------------------------
 	
 	#-------------------------------------------------------------------

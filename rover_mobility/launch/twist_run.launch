@@ -1,0 +1,4 @@
+<launch>
+	<!--<node pkg="rover_mobility" name="steer_command" type="steer_command.py" output="screen" required="true"/>-->
+	<node pkg="rover_mobility" name="closed_loop_run" type="twist_run.py" output="screen" required="true" />
+</launch>

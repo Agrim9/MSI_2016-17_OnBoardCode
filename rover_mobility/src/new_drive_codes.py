@@ -3,12 +3,13 @@
 from roboclaw import RoboClaw
 import rospy
 import tf
-from std_msgs.msg import Float64MultiArray,Float32MultiArray
+from std_msgs.msg import Float64MultiArray,Float32MultiArray,Float32
 from sensor_msgs.msg import Joy
 import numpy as np
 import signal
 import sys
 from serial.serialutil import SerialException as SerialException
+from geometry_msgs.msg import Twist
 # import utm
 #---------------------------------------------------- 
 
@@ -34,11 +35,14 @@ class Drive:
 		self.vely = 0.0
 		self.intialized = False
 		self.curr_heading = 0
-		self.final_heading = -60	#range is -180 to 180
+		self.final_heading = 0	#range is -180 to 180
 		self.prev_err=0
 		self.Iterm=0
 		self.Iterm_windout=0
 		self.heading_list=[]
+		self.angle_threshold = 3
+		self.ack_pub = rospy.Publisher('/twist_ack',Float32,queue_size=10)
+		rate_ack = rospy.Rate(10)
 
 	def fwd(self):
 		self.frontClaw.ForwardM1(self.speed)
@@ -97,6 +101,7 @@ class Drive:
 			self.mode= "autonomous" if (self.mode == "joystick") else "joystick"
 			print("mode changed")
 		if(self.mode == "autonomous"):
+			self.ack_pub.publish(2)
 			return			
 		if(axes[1]<0.1 and axes[1]>-(0.1) and axes[3]<0.1 and axes[3]>-0.1):
 			self.speed = 0
@@ -128,24 +133,28 @@ class Drive:
 		self.intialized = True
 
 	def imu_callback(self,inp):
+
 		self.heading = inp.data[2]*180/np.pi
 		self.heading_list.append(self.heading)
-		print("Current Heading is :"+str(self.heading))
+		print("Current :"+str(self.heading) + " Final: "+str(self.final_heading))
 		if(self.mode == "joystick"):
+			self.final_heading=self.heading
 			return	
-		angle_threshold = 3
+		#self.angle_threshold = 3
 		# kp = 
 		# kd = 0
 		# ki = 0
 		angle_diff = self.final_heading - self.heading
-		if(abs(angle_diff) < angle_threshold):
+		if(abs(angle_diff) < self.angle_threshold):
 			self.speed = 0
 			self.rest = True
 			print("in threshold")
-			if((np.abs((np.array(self.heading_list[::-1][0:3])-self.final_heading))<angle_threshold).all()):
-				self.mode = "joystick"
-				print("control shifted to joystick")
+			if((np.abs((np.array(self.heading_list[::-1][0:3])-self.final_heading))<self.angle_threshold).all()):
+				#self.mode = "joystick"
+				self.ack_pub.publish(0)	
+				print("converged to given angle")
 		elif(abs(angle_diff)  < 180):
+			self.converged = False
 			self.rest = False
 			# Pterm =	angle_diff
 			# Dterm = angle_diff - self.prev_err
@@ -176,14 +185,27 @@ class Drive:
 		print(self.mode)
 		print(self.speed)
 		print(self.direction)
-
 		# dt = 0.001
 		# self.velx = self.velx + inp[0]*dt
 		# self.vely = self.vely + inp[1]*dt
 		# self.posx = self.posx + self.velx*dt
 		# self.posy = self.posy + self.vely*dt
 		#get imu input here
-		return				
+		return
+
+	def twist_callback(self , inp):
+		twist_lin_k = 0
+		lin_speed = inp.linear.x #Check which of the three is the linear speed
+		angle_rot = inp.angular.x #Check which of the three is angle of roattion 
+		if (angle_rot > self.angle_threshold):
+			self.final_heading = self.heading + angle_rot
+			#self.rest = False
+		elif (lin_speed > 10):
+			self.speed = twist_lin_k*lin_speed
+			#self.rest = False
+		#else:
+			#self.rest = True	
+
 
 	def current_limiter(self):
 		(i,self.currents[0],self.currents[1]) = self.frontClaw.ReadCurrents()
@@ -192,7 +214,7 @@ class Drive:
 			if(int(self.currents[i]) > self.current_threshold):
 				self.stop()
 				return True
-
+		return False		
 
 #---------------------------------------------------
 
