@@ -40,9 +40,11 @@ class Drive:
 		self.Iterm=0
 		self.Iterm_windout=0
 		self.heading_list=[]
-		self.angle_threshold = 3
+		self.angle_threshold = 5
+		self.initialized = False;
 		self.ack_pub = rospy.Publisher('/twist_ack',Float32,queue_size=10)
 		rate_ack = rospy.Rate(10)
+		self.state = "angle mode"
 
 	def fwd(self):
 		self.frontClaw.ForwardM1(self.speed)
@@ -84,6 +86,9 @@ class Drive:
 			self.stop()
 		else:
 			if(self.direction == "forward"):
+				print (self.speed)
+				print (self.direction)
+				print(self.rest)
 				self.fwd()
 			elif (self.direction == "backward"):
 				self.bwd()
@@ -124,27 +129,35 @@ class Drive:
 				self.direction = "right"
 
 	def imu_callback(self,inp):
-
+		if(self.state != "angle mode"):
+			#print("no imu use")
+			return
 		self.heading = inp.data[2]*180/np.pi
 		self.heading_list.append(self.heading)
-		print("Current :"+str(self.heading) + " Final: "+str(self.final_heading))
+		#print("Current :"+str(self.heading) + " Final: "+str(self.final_heading))
 		if(self.mode == "joystick"):
 			self.final_heading=self.heading
-			return	
+			return		
 		#self.angle_threshold = 3
 		# kp = 
 		# kd = 0
 		# ki = 0
+		elif(self.initialized == False):
+			print("returning")
+			return
+		#print("gone ahead")
 		angle_diff = self.final_heading - self.heading
 		if(abs(angle_diff) < self.angle_threshold):
 			self.speed = 0
 			self.rest = True
-			print("in threshold")
-			if((np.abs((np.array(self.heading_list[::-1][0:3])-self.final_heading))<self.angle_threshold).all()):
+			#print("in threshold")
+			if((np.abs((np.array(self.heading_list[::-1][0:10])-self.final_heading))<self.angle_threshold).all()):
 				#self.mode = "joystick"
-				self.ack_pub.publish(0)	
-				print("converged to given angle")
+				self.ack_pub.publish(0)
+				self.state = "forward"	
+				#print("converged to given angle")
 		elif(abs(angle_diff)  < 180):
+			print("rotating")
 			self.converged = False
 			self.rest = False
 			self.speed = int(40*np.exp(-(abs(angle_diff)-20))+50 if abs(angle_diff)>20\
@@ -156,6 +169,7 @@ class Drive:
 			print("rotating")
 			self.prev_err=angle_diff					
 		else:
+			print("rotating")
 			self.rest = False
 			mod_angle_diff=360-abs(angle_diff)
 			self.speed = int(40*np.exp(-(abs(mod_angle_diff)-20))+50 if abs(mod_angle_diff)>20\
@@ -166,22 +180,29 @@ class Drive:
 				self.direction = "right"
 			print("rotating")	
 			self.prev_err=mod_angle_diff			
-		print(self.mode)
-		print(self.speed)
-		print(self.direction)
+		#print(self.mode)
+		#print(self.speed)
+		#print(self.direction)
 		return
 
 	def twist_callback(self , inp):
-		twist_lin_k = 5
+		twist_lin_k = 0.00005
 		lin_speed = inp.linear.x #Check which of the three is the linear speed
 		angle_rot = inp.angular.x #Check which of the three is angle of roattion 
 		if (angle_rot > self.angle_threshold):
 			self.final_heading = angle_rot #+ self.heading #Uncomment this if publishinf angle of rotation
 			#self.rest = False
+			self.initialized = True;
+			print("initialized");
 		else:
 			if(lin_speed > 0):
-				self.speed = twist_lin_k*lin_speed
+				self.speed = int(min(255,(twist_lin_k*lin_speed)))
 				self.direction = 'forward'
+				self.rest = False
+				print("received speed:")
+				print (self.speed)
+				print (self.direction)
+				print(self.rest)
 			else:	
 				self.rest = True
 				self.speed = 0

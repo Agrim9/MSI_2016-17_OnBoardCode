@@ -20,7 +20,7 @@ def sigint_handler(signal, frame):
 #----------------------------------------------------
 
 def get_speed():
-	d = sqrt((utm_coor[0]-final_utm[0])**2 + (utm_coor[1]-final_utm[1])**2)
+	d = math.sqrt((utm_coor[0]-final_utm[0])**2 + (utm_coor[1]-final_utm[1])**2)
 	d_thres = 5
 	if(d<d_thres):
 		return(0)	
@@ -29,6 +29,7 @@ def get_speed():
 
 def final_heading():
 	t_slope = (utm_coor[1]-final_utm[1])/(utm_coor[0]-final_utm[0])
+	t_slope = 1/t_slope
 	theta = math.atan(t_slope)*180/np.pi
 	return theta
 #----------------------------------------------------
@@ -40,8 +41,8 @@ def twist_pub_callback(inp):
 	if(inp.data == 0):
 		print("Stop Ack_received")
 		rospy.loginfo("Rotated to desired heading.Start publishing linear speed")
-		twist.angular.x = 0
-		twist.linear.x = get_speed()
+		twist_msg.angular.x = 0
+		twist_msg.linear.x = get_speed()
 		in_linear_mode = True
 		twist_pub.publish(twist_msg)
 		print("First linear speed sent")
@@ -53,13 +54,14 @@ def twist_pub_callback(inp):
 	# 	rospy.loginfo("Another speed cpmmand sent")
 	if(inp.data == 2):
 		print("Autonomous Mode started")
-		twist.angular.x = final_heading()
-		twist.linear.x = 0
+		twist_msg.angular.x = final_heading()
+		twist_msg.linear.x = 0
 		twist_pub.publish(twist_msg)
+		print("Angle sent")
 	if(inp.data == 3):
 		print("Reached Final Destination")
 		in_linear_mode = False
-		break_loop = True	
+		break_loop = False	
 	return
 
 def gps_callback(inp):
@@ -71,8 +73,8 @@ if __name__ == "__main__":
 
 	signal.signal(signal.SIGINT, sigint_handler)
 	utm_coor = [0.0,0.0]		#Find better initialization
-	final_gps = [0.0,0.0]
-	final_utm = utm.to_LatLon(final_gps[0],final_gps[1])[:2]
+	final_gps = [19.13120398297906, 72.91828877292573]
+	final_utm = utm.from_latlon(final_gps[0],final_gps[1])[:2]
 #------------------------------------------------------------------------------------------	
 	rospy.init_node("twist_node",anonymous=True)
 	rospy.loginfo("Starting twist node")
