@@ -1,0 +1,8 @@
+prefix=/home/pi/MSI_WS/devel
+
+Name: rover_mobility
+Description: Description of rover_mobility
+Version: 0.0.0
+Cflags: 
+Libs: -L/home/pi/MSI_WS/devel/lib 
+Requires: 
