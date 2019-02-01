@@ -1,2 +1,0 @@
-rover_mobility
--DCATKIN_DEVEL_PREFIX=/home/pi/MSI_WS/devel -DCMAKE_INSTALL_PREFIX=/home/pi/MSI_WS/install -G Unix Makefiles
