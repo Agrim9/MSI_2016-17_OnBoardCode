@@ -74,7 +74,6 @@ if __name__ == "__main__":
 	while not rospy.is_shutdown():
 		if(stopped == False):
 			Drive.update_drive()
-			#Drive.update_turn()
 		else:
 			print("stopped due to excess current")	
 		#if(Drive.current_limiter()):			#uncomment after setting current_threshold appropriately
