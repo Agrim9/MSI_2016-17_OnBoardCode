@@ -15,39 +15,68 @@ import time
 
 class Rover_drive:
 
-	def _init_(self,drivef,driveb,steerf,steerb):
+		def __init__(self,drivef,driveb,steerf,steerb):
+			self.frontDrive = drivef
+			self.backDrive = driveb
+			self.frontSteer = steerf
+			self.backSteer = steerb
+			self.indiv_state="fr"
+			self.rest = True
+			self.turn = False
+			self.direction = "forward"
+			self.drivespeed = 0
+			self.steerspeed = 0
+			self.restore_done = True
 
-		self.frontDrive = drivef
-		self.backDrive = driveb
-		self.frontSteer = steerf
-		self.backSteer = steerb
+		def stop(self):
+			self.frontDrive.ForwardM1(0)
+			self.frontDrive.ForwardM2(0)
+			self.backDrive.ForwardM1(0)
+			self.backDrive.ForwardM2(0)
+			self.frontSteer.ForwardM1(0)
+			self.frontSteer.ForwardM2(0)
+			self.backSteer.ForwardM1(0)
+			self.backSteer.ForwardM2(0)	
 
-		self.rest = True
-		self.turn = False
-		self.direction = "forward"
-		self.drivespeed = 0
-		self.steerspeed = 0
-		self.restore_done = True
-
-		def fwd(self):
+		def bwd(self):
 			self.frontDrive.ForwardM1(self.drivespeed)
 			self.frontDrive.ForwardM2(self.drivespeed)
 			self.backDrive.ForwardM1(self.drivespeed)
 			self.backDrive.ForwardM2(self.drivespeed)
 
-		def bwd(self):
+		def fwd(self):
 			self.frontDrive.BackwardM1(self.drivespeed)
 			self.frontDrive.BackwardM2(self.drivespeed)
 			self.backDrive.BackwardM1(self.drivespeed)
 			self.backDrive.BackwardM2(self.drivespeed)
 
-		def turn_right(self):
-			self.frontSteer.ForwardM1(self.turnspeed)
-			self.frontSteer.ForwardM2(self.turnspeed)
+		def turn_left(self,indiv=False):
+			if(not indiv):
+				self.frontSteer.ForwardM1(self.turnspeed)
+				self.frontSteer.BackwardM2(self.turnspeed)
+			else:
+				if(self.indiv_state=="fr"):
+					self.frontSteer.BackwardM2(self.turnspeed)
+				elif(self.indiv_state=="fl"):
+					self.frontSteer.ForwardM1(self.turnspeed)
+				elif(self.indiv_state=="br"):
+					self.backSteer.BackwardM2(self.turnspeed)
+				elif(self.indiv_state=="bl"):
+					self.backSteer.ForwardM1(self.turnspeed)
 
-		def turn_left(self):
-			self.frontSteer.BackwardM1(self.turnspeed)
-			self.frontSteer.BackwardM2(self.turnspeed)
+		def turn_right(self,indiv=False):
+			if(not indiv):
+				self.frontSteer.BackwardM1(self.turnspeed)
+				self.frontSteer.ForwardM2(self.turnspeed)
+			else:
+				if(self.indiv_state=="fr"):
+					self.frontSteer.ForwardM2(self.turnspeed)
+				elif(self.indiv_state=="fl"):
+					self.frontSteer.BackwardM1(self.turnspeed)
+				elif(self.indiv_state=="br"):
+					self.backSteer.ForwardM2(self.turnspeed)
+				elif(self.indiv_state=="bl"):
+					self.backSteer.BackwardM1(self.turnspeed)
 
 		def restore(self): #ReadEncM1
 			kp = 2
@@ -59,13 +88,15 @@ class Rover_drive:
 			integ2 = 0
 			err_threshold = 2 #Change this threshold 
 			while(True):
-				err1 = ReadEncM1(self)
-				err2 = ReadEncM2(self)
-				if(abs(err1)<100 && abs(err2)<100):
+				err1 = self.frontSteer.ReadEncM1(self)[1]
+				err2 = self.frontSteer.ReadEncM2(self)[1]
+				if(abs(err1)<100 and abs(err2)<100):
 					break
 				else:
-					if(err1 < 100) err1 = 0
-					if(err2 < 100) err2 = 0
+					if(err1 < 100):
+						err1 = 0
+					if(err2 < 100):
+						err2 = 0
 					speed1 = int(min(255,kp*abs(err1*255/4000)))
 					speed2 = int(min(255,kp*abs(err2*255/4000)))
 					if(err1>0):
@@ -73,35 +104,53 @@ class Rover_drive:
 					else:
 						self.frontSteer.ForwardM1(speed1)
 					if(err2>0):
-						self.frontSteer.BackwardM2(speed2)
-					else:
 						self.frontSteer.ForwardM2(speed2)
-			self.restore_done = True			
+					else:
+						self.frontSteer.BackwardM2(speed2)
+			self.restore_done = True
+			print("restored")			
 
 		def update_drive(self):
 			if(self.direction == "restore"):
-				restore()
+				self.restore()
 			elif(self.rest == False):
 				if(self.turn == True):
 					if(self.direction == "left"):
-						turn_left()
+						self.turn_left()
 					elif(self.direction == "right"):
-						turn_right()
+						self.turn_right()
 				else:
 					if(self.direction == "forward"):
-						fwd()
+						self.fwd()
 					elif(self.direction == "backward"):
-						bwd()	
+						self.bwd()
+			else:
+				self.stop()				
 
+		def update_indiv_steer(self):
+			if(self.rest == False):
+				if(self.turn == True):
+					if(self.direction == "left"):
+						self.turn_left(indiv=True)
+					elif(self.direction == "right"):
+						self.turn_right(indiv=True)
+			else:
+				self.stop()				
 
 		def drive_callback(self,inp):
 			axes = inp.axes
 			buttons = inp.buttons
-			if(restore_done == False):
+			if(self.restore_done == False):
 				return
-			elif(buttons[7] == 1)
+			elif(buttons[8] == 1):
 				self.direction = "restore"
-			elif (axes[1]>0.1 || axes[1]<-0.1):
+				print("restoring")
+			elif(axes[1]<0.1 and axes[1] > -0.1 and axes[2]<0.1 and axes[2] > -0.1):
+				self.drivespeed = 0
+				self.turnspeed = 0
+				self.rest = True
+				self.turn = False	
+			elif (axes[1]>0.1 or axes[1]<-0.1):
 				if(self.turn == False):
 					self.rest = False
 					self.turnspeed = 0
@@ -110,30 +159,54 @@ class Rover_drive:
 						self.direction = "forward"
 					else:
 						self.direction = "backward"
-			elif (axes[3]>0.1 || axes[3]<-0.1):
+			elif (axes[2]>0.1 or axes[2]<-0.1):
 				self.turn = True
 				self.rest = False
 				self.drivespeed = 0
-				self.turnspeed = int(min(255,400*axes[3]))
-				if(axes[3]>0):
+				self.turnspeed = int(min(255,30*axes[2]*axes[2]))
+				if(axes[2]>0):
 					self.direction = "left"
 				else:
 					self.direction = "right"
 			else:
 				self.drivespeed = 0
-                self.turnspeed = 0
-                self.rest = True
-				self.turn = False			
+				self.turnspeed = 0
+				self.rest = True
+				self.turn = False
 
+
+		def indiv_callback(self,inp):
+			axes = inp.axes
+			buttons = inp.buttons
+			if(axes[4]==1):
+				print("Shifting to FL")
+				self.indiv_state="fl"
+			elif(axes[4]==-1):
+				print("Shifting to FR")
+				self.indiv_state="fr"
+			elif(buttons[0]==1):
+				print("Shifting to BL")
+				self.indiv_state="bl"
+			elif(buttons[2]==1):
+				print("Shifting to BR")
+				self.indiv_state="br"
+			elif (axes[2]>0.1 or axes[2]<-0.1):
+				self.rest = False
+				self.turn = True
+				self.turnspeed = int(min(255,30*axes[2]*axes[2]))
+				if(axes[2]>0):
+					self.direction = "left"
+				else:
+					self.direction = "right"
 
 
 		def current_limiter(self):
-        	(i,self.currents[0],self.currents[1]) = self.frontClaw.ReadCurrents()
-        	(i,self.currents[2],self.currents[3]) = self.rearClaw.ReadCurrents()
-        	for i in range(4):
-            	if(int(self.currents[i]) > self.current_threshold):
-              		self.stop()
-                	return True
-    	    return False        
+			(i,self.currents[0],self.currents[1]) = self.frontClaw.ReadCurrents()
+			(i,self.currents[2],self.currents[3]) = self.rearClaw.ReadCurrents()
+			for i in range(4):
+				if(int(self.currents[i]) > self.current_threshold):
+					self.stop()
+					return True
+			return False        
 
 #---------------------------------------------------                			

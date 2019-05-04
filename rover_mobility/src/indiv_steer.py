@@ -63,17 +63,17 @@ if __name__ == "__main__":
 	#connected---------------------------------------
 
 	#initialising Drive object-------------------
-	Rover = Rover_drive(frontDrive,backDrive,frontSteer,backSteer)
+	Rover = Rover_drive(frontDrive,backDrive,frontSteer,backSteer);
 	#subscriber lines--------------------------------------------------	
 	#ros::Subscriber joy_sub = _nh.subscribe("/joy", 100, joyCallback);
-	rospy.Subscriber("/joy",Joy,Rover.drive_callback)
+	rospy.Subscriber("/joy",Joy,Rover.indiv_callback)
 
 	#updating the received intructions
 	r_time_f=rospy.Rate(10)
 	stopped = False
 	while not rospy.is_shutdown():
 		if(stopped == False):
-			Rover.update_drive()
+			Rover.update_indiv_steer()
 		else:
 			print("stopped due to excess current")	
 		#if(Drive.current_limiter()):			#uncomment after setting current_threshold appropriately

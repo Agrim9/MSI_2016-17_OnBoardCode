@@ -1,4 +1,4 @@
 <launch>
 	<!--<node pkg="rover_mobility" name="steer_command" type="steer_command.py" output="screen" required="true"/>-->
-	<node pkg="rover_mobility" name="new_drive_run" type="URC_drive.py" output="screen" required="true" />
+	<node pkg="rover_mobility" name="new_drive_run" type="indiv_steer.py" output="screen" required="true" />
 </launch>
