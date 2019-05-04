@@ -28,6 +28,9 @@ class Rover_drive:
 			self.steerspeed = 0
 			self.restore_done = True
 
+			self.init1 = self.frontSteer.ReadEncM1()[1]
+			self.init2 = self.frontSteer.ReadEncM2()[1]
+
 		def stop(self):
 			self.frontDrive.ForwardM1(0)
 			self.frontDrive.ForwardM2(0)
@@ -79,35 +82,48 @@ class Rover_drive:
 					self.backSteer.BackwardM1(self.turnspeed)
 
 		def restore(self): #ReadEncM1
-			kp = 2
-			ki = 0.01
-			kd = 0.01
+			kp = 5
+			ki = 1
+			kd = 0.1
 			preverr1 = 0
 			preverr2 = 0
 			integ1 = 0
 			integ2 = 0
-			err_threshold = 2 #Change this threshold 
+			err_threshold = 100 #Change this threshold 
 			while(True):
-				err1 = self.frontSteer.ReadEncM1(self)[1]
-				err2 = self.frontSteer.ReadEncM2(self)[1]
-				if(abs(err1)<100 and abs(err2)<100):
+				err1 = self.frontSteer.ReadEncM1()[1] - self.init1
+				err2 = self.frontSteer.ReadEncM2()[1] - self.init2
+				if(abs(err1)<err_threshold and abs(err2)<err_threshold):
 					break
 				else:
-					if(err1 < 100):
+					if(abs(err1) < err_threshold):
 						err1 = 0
-					if(err2 < 100):
+						integ1 = 0
+						preverr1 = 0
+					if(abs(err2) < err_threshold):
 						err2 = 0
-					speed1 = int(min(255,kp*abs(err1*255/4000)))
-					speed2 = int(min(255,kp*abs(err2*255/4000)))
+						integ2 = 0
+						preverr2 = 0
+					integ1 = integ1 + err1
+					integ2 = integ2 + err2
+					d1 = err1 - preverr1
+					d2 = err2 - preverr2
+					preverr1 = err1
+					preverr2 = err2	
+					speed1 = int(min(155,kp*err1+ki*integ1+kd*d1))
+					speed2 = int(min(155,kp*err2+ki*integ2+kd*d2))
 					if(err1>0):
 						self.frontSteer.BackwardM1(speed1)
-					else:
+					elif(err1<0):
 						self.frontSteer.ForwardM1(speed1)
 					if(err2>0):
 						self.frontSteer.ForwardM2(speed2)
-					else:
+					elif(err2<0):
 						self.frontSteer.BackwardM2(speed2)
 			self.restore_done = True
+			self.direction = "forward"
+			self.drivespeed = 0
+			self.turnspeed = 0
 			print("restored")			
 
 		def update_drive(self):
