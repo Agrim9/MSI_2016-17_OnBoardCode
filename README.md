@@ -1,5 +1,12 @@
-# IITB Mars Rover Team 2017-18, Rover Mobility Codes
+# IITB Mars Rover Team 2019-20, Rover Mobility Codes
 The repository for the Rover Mobility codes.
+
+## IP configuration
+
+### SSH commands
+1.) ssh into NUC by the command: ssh rover-nuc@ip.ip.ip.ip   (Password:rover2409)
+2.) Go to the required repository and run /source/devel.bash  (Every Terminal)
+3.) rosrun individual files or roslaunch the launch file.
 
 ## Roboclaw Documentation
 
