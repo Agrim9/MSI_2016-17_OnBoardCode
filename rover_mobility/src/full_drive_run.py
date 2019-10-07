@@ -57,6 +57,8 @@ if __name__ == "__main__":
 	#subscriber lines--------------------------------------------------
 	#ros::Subscriber joy_sub = _nh.subscribe("/joy", 100, joyCallback);
 	rospy.Subscriber("/joy",Joy,Drive.drive_callback)
+	rospy.Subscriber("/gps", Float32MultiArray, Drive.GPS)
+	rospy.Subscriber("/imu",Float32MultiArray, Drive.IMU)
 	#-------------------------------------------------------------------
 	
 	#-------------------------------------------------------------------

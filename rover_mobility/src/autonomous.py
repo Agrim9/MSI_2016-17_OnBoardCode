@@ -1,5 +1,8 @@
 #!/usr/bin/env python
 #Contains codes for all drive related things. Imported in other codes for usage. 
+
+#Edited on 28/09/19 by Kavin and Preetam
+
 from roboclaw import RoboClaw
 import rospy
 import tf
@@ -14,6 +17,11 @@ import utm
 import RPi.GPIO as g
 import time
 #---------------------------------------------------- 
+gps_dest = [71, 19]
+dist_threshold = 5
+angle_threshold = 5
+c1 = 0.5*dist_threshold
+c2 = 0.5*angle_threshold
 
 class Drive:
     def __init__(self,driver1,driver2):
@@ -26,23 +34,8 @@ class Drive:
         self.drivemode = "open_loop"
         self.turn = False
         self.mode_oldval="front"
-        g.setmode(g.BCM)
-        g.setup(4,g.OUT)
-        g.setup(22,g.OUT)
-        g.setup(23,g.OUT)
-        g.setup(24,g.OUT)
-        g.setup(12,g.OUT)
-        g.setup(13,g.OUT)
-        g.setup(18,g.OUT)
-        g.setup(19,g.OUT)
-        self.pwm1 = g.PWM(18, 100)
-        self.pwm2 = g.PWM(19, 100)
-        self.pwm3 = g.PWM(13, 100)
-        self.pwm4 = g.PWM(12, 100)
-        self.pwm1.start(0)
-        self.pwm2.start(0)
-        self.pwm3.start(0)
-        self.pwm4.start(0)
+        self.gps_curr = gps_dest
+        self.current_heading = 0
 
     def fwd(self):
         self.rightClaw.ForwardM1(self.speed)
@@ -70,28 +63,6 @@ class Drive:
         self.rightClaw.ForwardM2(0)
         self.leftClaw.ForwardM2(0)
 
-    # def right(self):
-    #     g.output(4,True)
-    #     g.output(22,True)
-    #     g.output(23,True)
-    #     g.output(24,True)
-    #     self.pwm1.ChangeDutyCycle(50)
-    #     if(self.mode_oldval=="all"):
-    #         self.pwm2.ChangeDutyCycle(50)
-    #         self.pwm3.ChangeDutyCycle(50)
-    #     self.pwm4.ChangeDutyCycle(50)
-
-    # def left(self):
-    #     g.output(4,False)
-    #     g.output(22,False)
-    #     g.output(23,False)
-    #     g.output(24,False)
-    #     self.pwm1.ChangeDutyCycle(50)
-    #     if(self.mode_oldval=="all"):
-    #         self.pwm2.ChangeDutyCycle(50)
-    #         self.pwm3.ChangeDutyCycle(50)
-    #     self.pwm4.ChangeDutyCycle(50)       
-
     def right(self):
         self.rightClaw.BackwardM1(self.speed)
         self.rightClaw.BackwardM2(self.speed)
@@ -103,29 +74,22 @@ class Drive:
         self.rightClaw.ForwardM2(self.speed)
         self.leftClaw.BackwardM1(self.speed)
         self.leftClaw.BackwardM2(self.speed)
-    
-    def turn_stop(self):
-        g.output(18, False)
-        g.output(19, False)
-        g.output(13, False)
-        g.output(12, False)
-        self.pwm1.ChangeDutyCycle(0)
-        self.pwm2.ChangeDutyCycle(0)
-        self.pwm3.ChangeDutyCycle(0)
-        self.pwm4.ChangeDutyCycle(0)
-
-
+            
     def update_steer(self):
         if(self.rest == True):
             self.stop()
         elif(self.direction == "forward"):
             self.fwd()
-        else:
+        elif(self.direction == "backward"):
             self.bwd()
+        elif(self.direction == "right"):
+            self.right()
+        else:
+            self.left()
 
     def update_turn(self):
         if(self.turn == False):
-            self.turn_stop()
+            self.stop()
         elif(self.turn_dir == "left"):
             self.left()
         else:
@@ -134,15 +98,17 @@ class Drive:
     def drive_callback(self,inp):
         axes = inp.axes
         buttons = inp.buttons
+        if(button[6] == 1): #Find which button
+            if(self.drivemode == "open_loop"):
+                # self.drivemode == "autonomous_mode"
+                self.drivemode == "open_loop"
+            else self.drivemode == "open_loop"
+
         if(self.drivemode == "open_loop"):
             if(axes[1]<0.1 and axes[1]>-(0.1) and axes[3]<0.1 and axes[3]>-0.1):
                 self.speed = 0
                 self.rest = True
-                self.turn = False
             elif (axes[1]>0.1 or axes[1]<-0.1):
-                if(self.turn == True):
-                    self.rest = True
-                    return
                 self.rest = False
                 self.speed = int(min(255,400*axes[1]))  
                 if(axes[1] > 0):
@@ -150,50 +116,86 @@ class Drive:
                 else:   
                     self.direction = "backward"
             else:
-                self.turn = True
+                self.rest = False
+                self.speed = int(min(255,400*axes[3]))
                 if(axes[3] > 0):
                     self.turn_dir = "left"
                 else:
                     self.turn_dir = "right"
 
-            if(buttons[7]==1):
-                if(self.mode_oldval=="front"):
-                    self.mode_oldval="all"
-                else:
-                    self.mode_oldval="front"
+            # if(buttons[7]==1):
+            #     if(self.mode_oldval=="front"):
+            #         self.mode_oldval="all"
+            #     else:
+            #         self.mode_oldval="front"
+        else:
+            self.autonomous_move(gps_dest)            
 
+    
+    def autonomous_move(self, gps_dest):
+        distance = sqrt((to_utm(gps_dest)[0] - to_utm(self.gps_curr)[0])**2 + (to_utm(gps_dest)[1] - to_utm(self.gps_curr)[1])**2)    
+        while(distance > dist_threshold):
+            dx = to_utm(gps_dest)[0] - to_utm(self.gps_curr)[0]
+            dy = to_tm(gps_dest)[1] - to_utm(self.gps_curr)[1]
+            target_angle = 90 - np.arctan(dy/dx)
+            angle_diff = current_heading - target_angle
+            auto_fwd_speed = 255*(1 - exp(-(distance - c1)))
+            if(abs(angle_diff) > angle_threshold)
+                self.turn = True
+                self.rest = True
+                auto_rot_speed = 255*(1 - exp(-(angle_diff - c2)))
+                self.speed = int(min(255,auto_rot_speed))
+                if(angle_diff > 0) self.turn_dir == "right"
+                else self.turn_dir == "left"
+            else 
+                self.turn = False
+                self.rest = False
+                self.speed = int(min(255,auto_fwd_speed))
+                self.direction == "forward"
+        return          
 
-    def autonom_ahead(self,speed_auto):
-        auto_speed = int(min(255,speed_auto))
-        self.rightClaw.ForwardM1(auto_speed)
-        self.rightClaw.BackwardM2(auto_speed)
-        self.leftClaw.BackwardM1(auto_speed)
-        self.leftClaw.ForwardM2(auto_speed)
+    def GPS(self, inp):
+        self.gps_curr = [inp[0], inp[1]]
+        return
+ 
+    def to_utm(gps):
+        return utm.from_latlon(gps[0], gps[1])
+
+    def IMU(self, inp):
+        self.current_heading = inp #Check IMU data format
+        return
+
+    # def autonom_ahead(self,speed_auto):
+    #     auto_speed = int(min(255,speed_auto))
+    #     self.rightClaw.ForwardM1(auto_speed)
+    #     self.rightClaw.BackwardM2(auto_speed)
+    #     self.leftClaw.BackwardM1(auto_speed)
+    #     self.leftClaw.ForwardM2(auto_speed)
         
-    def autonom_turn(self,a,c):
-        g.output(23,c)
-        g.output(4,c)
-        self.pwm4.ChangeDutyCycle(50)
-        self.pwm1.ChangeDutyCycle(50)
-        time.sleep(a)
-        self.pwm4.ChangeDutyCycle(0)
-        self.pwm1.ChangeDutyCycle(0)
+    # def autonom_turn(self,a,c):
+    #     g.output(23,c)
+    #     g.output(4,c)
+    #     self.pwm4.ChangeDutyCycle(50)
+    #     self.pwm1.ChangeDutyCycle(50)
+    #     time.sleep(a)
+    #     self.pwm4.ChangeDutyCycle(0)
+    #     self.pwm1.ChangeDutyCycle(0)
 
 
-    def diff_turn(dir):
-        g.output(23,dir)
-        g.output(4,dir)
-        g.output(22,not dir)
-        g.output(24,not dir)
-        pwm1.ChangeDutyCycle(50)
-        pwm2.ChangeDutyCycle(50)
-        pwm3.ChangeDutyCycle(0)
-        pwm4.ChangeDutyCycle(0)
-        time.sleep(4.5)
-        pwm1.ChangeDutyCycle(0)
-        pwm2.ChangeDutyCycle(0)
-        pwm3.ChangeDutyCycle(0)
-        pwm4.ChangeDutyCycle(0)
+    # def diff_turn(dir):
+    #     g.output(23,dir)
+    #     g.output(4,dir)
+    #     g.output(22,not dir)
+    #     g.output(24,not dir)
+    #     pwm1.ChangeDutyCycle(50)
+    #     pwm2.ChangeDutyCycle(50)
+    #     pwm3.ChangeDutyCycle(0)
+    #     pwm4.ChangeDutyCycle(0)
+    #     time.sleep(4.5)
+    #     pwm1.ChangeDutyCycle(0)
+    #     pwm2.ChangeDutyCycle(0)
+    #     pwm3.ChangeDutyCycle(0)
+    #     pwm4.ChangeDutyCycle(0)
 
     def current_limiter(self):
         (i,self.currents[0],self.currents[1]) = self.frontClaw.ReadCurrents()
