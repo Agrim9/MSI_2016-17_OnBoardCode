@@ -14,7 +14,7 @@ import sys
 from serial.serialutil import SerialException as SerialException
 from geometry_msgs.msg import Twist
 import utm
-import RPi.GPIO as g
+# import RPi.GPIO as g
 import time
 #---------------------------------------------------- 
 gps_dest = [71, 19]
@@ -87,22 +87,23 @@ class Drive:
         else:
             self.left()
 
-    def update_turn(self):
-        if(self.turn == False):
-            self.stop()
-        elif(self.turn_dir == "left"):
-            self.left()
-        else:
-            self.right()                
+    # def update_turn(self):
+    #     if(self.turn == False):
+    #         self.stop()
+    #     elif(self.turn_dir == "left"):
+    #         self.left()
+    #     else:
+    #         self.right()                
 
     def drive_callback(self,inp):
         axes = inp.axes
         buttons = inp.buttons
-        if(button[6] == 1): #Find which button
+        if(buttons[6] == 1): #Find which button
             if(self.drivemode == "open_loop"):
                 # self.drivemode == "autonomous_mode"
                 self.drivemode == "open_loop"
-            else self.drivemode == "open_loop"
+            else:
+                self.drivemode == "open_loop"
 
         if(self.drivemode == "open_loop"):
             if(axes[1]<0.1 and axes[1]>-(0.1) and axes[3]<0.1 and axes[3]>-0.1):
@@ -140,14 +141,14 @@ class Drive:
             target_angle = 90 - np.arctan(dy/dx)
             angle_diff = current_heading - target_angle
             auto_fwd_speed = 255*(1 - exp(-(distance - c1)))
-            if(abs(angle_diff) > angle_threshold)
+            if(abs(angle_diff) > angle_threshold):
                 self.turn = True
                 self.rest = True
                 auto_rot_speed = 255*(1 - exp(-(angle_diff - c2)))
                 self.speed = int(min(255,auto_rot_speed))
-                if(angle_diff > 0) self.turn_dir == "right"
-                else self.turn_dir == "left"
-            else 
+                if(angle_diff > 0): self.turn_dir == "right"
+                else: self.turn_dir == "left"
+            else:
                 self.turn = False
                 self.rest = False
                 self.speed = int(min(255,auto_fwd_speed))

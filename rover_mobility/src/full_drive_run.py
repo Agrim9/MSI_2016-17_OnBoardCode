@@ -1,5 +1,5 @@
 #!/usr/bin/env python
-from full_drive import *
+from autonomous import *
 from roboclaw import RoboClaw
 import rospy
 import tf
@@ -10,11 +10,9 @@ import signal
 import sys
 from serial.serialutil import SerialException as SerialException
 import pdb
-import RPi.GPIO as g
 #---------------------------------------------------- 
 #SIGINT Handler to escape loops. Use Ctrl-C to exit
 def sigint_handler(signal, frame):
-	g.cleanup()
 	sys.exit(0)
 #----------------------------------------------------
 
@@ -25,7 +23,7 @@ def sigint_handler(signal, frame):
 if __name__ == "__main__":
 
 	signal.signal(signal.SIGINT, sigint_handler)
-	rospy.init_node("Drive node")
+	rospy.init_node("Drive_Node")
 	rospy.loginfo("Starting drive node")
 	r_time = rospy.Rate(1)
 
@@ -33,32 +31,32 @@ if __name__ == "__main__":
 	#Trying to connect to roboclaw drivers 1 and 2
 	while(True):
 		try:
-			rightClaw = RoboClaw(0x80, "/dev/rightClaw", 9600)
+			rightClaw = RoboClaw(0x80, "/dev/ttyACM1", 9600)
 			break;
 		except SerialException:
-			rospy.logwarn("Couldn't connect to Right Claw. trying again")
+			rospy.logwarn("Couldn't connect to Right Claw at ttyACM1. trying again")
 			r_time.sleep()
 	rospy.loginfo("Connected to Right Claw")
 	while(True):
 		try:
-			leftClaw = RoboClaw(0x80, "/dev/leftClaw", 9600)
+			leftClaw = RoboClaw(0x80, "/dev/ttyACM0", 9600)
 			break;
 		except SerialException:
-			rospy.logwarn("Couldn't connect to Left Claw. trying again")
+			rospy.logwarn("Couldn't connect to Left Claw at ttyACM0. trying again")
 			r_time.sleep()
 	rospy.loginfo("Connected to Left Claw")
 	#connected---------------------------------------
 
 	#initialising Drive object-------------------
 	Drive = Drive(rightClaw,leftClaw)
-	#added self.stop in __init__. Add seperately her if it doesnt work
+	#added self.stop in __init__. Add seperately here if it doesnt work
 	#------------------------------------------------
 
 	#subscriber lines--------------------------------------------------
 	#ros::Subscriber joy_sub = _nh.subscribe("/joy", 100, joyCallback);
 	rospy.Subscriber("/joy",Joy,Drive.drive_callback)
-	rospy.Subscriber("/gps", Float32MultiArray, Drive.GPS)
-	rospy.Subscriber("/imu",Float32MultiArray, Drive.IMU)
+	# rospy.Subscriber("/gps", Float32MultiArray, Drive.GPS)
+	# rospy.Subscriber("/imu",Float32MultiArray, Drive.IMU)
 	#-------------------------------------------------------------------
 	
 	#-------------------------------------------------------------------
@@ -68,7 +66,7 @@ if __name__ == "__main__":
 	while not rospy.is_shutdown():
 		if(stopped == False):
 			Drive.update_steer()
-			Drive.update_turn()
+			# Drive.update_turn()
 		else:
 			print("stopped due to excess current")	
 		#if(Drive.current_limiter()):			#uncomment after setting current_threshold appropriately
