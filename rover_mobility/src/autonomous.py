@@ -63,19 +63,21 @@ class Drive:
         self.rightClaw.ForwardM2(0)
         self.leftClaw.ForwardM2(0)
 
-    def right(self):
-        self.rightClaw.BackwardM1(self.speed)
-        self.rightClaw.BackwardM2(self.speed)
-        self.leftClaw.ForwardM1(self.speed)
-        self.leftClaw.ForwardM2(self.speed)
-        
     def left(self):
         self.rightClaw.ForwardM1(self.speed)
+        self.rightClaw.BackwardM2(self.speed)
+        self.leftClaw.ForwardM1(self.speed)
+        self.leftClaw.BackwardM2(self.speed)
+        
+    def right(self):
+        self.rightClaw.BackwardM1(self.speed)
         self.rightClaw.ForwardM2(self.speed)
         self.leftClaw.BackwardM1(self.speed)
-        self.leftClaw.BackwardM2(self.speed)
+        self.leftClaw.ForwardM2(self.speed)
             
     def update_steer(self):
+        # if(not(self.rest)):
+            # print(self.rest,self.direction)
         if(self.rest == True):
             self.stop()
         elif(self.direction == "forward"):
@@ -106,6 +108,7 @@ class Drive:
                 self.drivemode == "open_loop"
 
         if(self.drivemode == "open_loop"):
+            # print(axes[1],axes[3])
             if(axes[1]<0.1 and axes[1]>-(0.1) and axes[3]<0.1 and axes[3]>-0.1):
                 self.speed = 0
                 self.rest = True
@@ -120,9 +123,9 @@ class Drive:
                 self.rest = False
                 self.speed = int(min(255,400*axes[3]))
                 if(axes[3] > 0):
-                    self.turn_dir = "left"
+                    self.direction = "left"
                 else:
-                    self.turn_dir = "right"
+                    self.direction = "right"
 
             # if(buttons[7]==1):
             #     if(self.mode_oldval=="front"):

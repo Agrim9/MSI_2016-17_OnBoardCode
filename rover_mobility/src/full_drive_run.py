@@ -10,6 +10,7 @@ import signal
 import sys
 from serial.serialutil import SerialException as SerialException
 import pdb
+import os
 #---------------------------------------------------- 
 #SIGINT Handler to escape loops. Use Ctrl-C to exit
 def sigint_handler(signal, frame):
@@ -29,9 +30,10 @@ if __name__ == "__main__":
 
 	#------------------------------------------------
 	#Trying to connect to roboclaw drivers 1 and 2
+	# os.cmd('claw')
 	while(True):
 		try:
-			rightClaw = RoboClaw(0x80, "/dev/ttyACM1", 9600)
+			rightClaw = RoboClaw(0x80, "/dev/ttyACM0", 9600)
 			break;
 		except SerialException:
 			rospy.logwarn("Couldn't connect to Right Claw at ttyACM1. trying again")
@@ -39,7 +41,7 @@ if __name__ == "__main__":
 	rospy.loginfo("Connected to Right Claw")
 	while(True):
 		try:
-			leftClaw = RoboClaw(0x80, "/dev/ttyACM0", 9600)
+			leftClaw = RoboClaw(0x80, "/dev/ttyACM1", 9600)
 			break;
 		except SerialException:
 			rospy.logwarn("Couldn't connect to Left Claw at ttyACM0. trying again")
