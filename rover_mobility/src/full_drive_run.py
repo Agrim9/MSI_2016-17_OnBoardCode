@@ -36,7 +36,7 @@ if __name__ == "__main__":
 			rightClaw = RoboClaw(0x80, "/dev/ttyACM0", 9600)
 			break;
 		except SerialException:
-			rospy.logwarn("Couldn't connect to Right Claw at ttyACM1. trying again")
+			rospy.logwarn("Couldn't connect to Right Claw at ttyACM0. trying again .\n Try running 'tty_permission' command ")
 			r_time.sleep()
 	rospy.loginfo("Connected to Right Claw")
 	while(True):
@@ -44,7 +44,7 @@ if __name__ == "__main__":
 			leftClaw = RoboClaw(0x80, "/dev/ttyACM1", 9600)
 			break;
 		except SerialException:
-			rospy.logwarn("Couldn't connect to Left Claw at ttyACM0. trying again")
+			rospy.logwarn("Couldn't connect to Left Claw at ttyACM1. trying again .\n Try running 'tty_permission' command")
 			r_time.sleep()
 	rospy.loginfo("Connected to Left Claw")
 	#connected---------------------------------------
