@@ -69,12 +69,11 @@ if __name__ == "__main__":
 		if(stopped == False):
 			Drive.update_steer()
 			# Drive.update_turn()
+			stopped = Drive.current_limiter()
 		else:
-			print("stopped due to excess current")	
-		#if(Drive.current_limiter()):			#uncomment after setting current_threshold appropriately
-			print("CURRENT ERROR")
-			stopped = True
+			print("stopped due to excess current")
 			rospy.loginfo(Drive.currents)
+			stopped = True
 		#rospy.loginfo(Drive.direction)
 		#rospy.loginfo(Drive.speed)
 		r_time_f.sleep()

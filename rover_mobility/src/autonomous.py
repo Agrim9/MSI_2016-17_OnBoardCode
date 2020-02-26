@@ -36,6 +36,8 @@ class Drive:
         self.mode_oldval="front"
         self.gps_curr = gps_dest
         self.current_heading = 0
+        self.currents = [0,0,0,0]
+        self.current_threshold = 400
 
     def fwd(self):
         self.rightClaw.ForwardM1(self.speed)
@@ -114,18 +116,19 @@ class Drive:
                 self.rest = True
             elif (axes[1]>0.1 or axes[1]<-0.1):
                 self.rest = False
-                self.speed = int(min(255,400*axes[1]))  
+                self.speed = int(min(255,abs(400*axes[1]*axes[1])))  
                 if(axes[1] > 0):
                     self.direction = "forward"
                 else:   
                     self.direction = "backward"
             else:
                 self.rest = False
-                self.speed = int(min(255,400*axes[3]))
+                self.speed = int(min(255,abs(400*axes[3]*axes[3])))
                 if(axes[3] > 0):
                     self.direction = "left"
                 else:
                     self.direction = "right"
+            # print(self.speed)
 
             # if(buttons[7]==1):
             #     if(self.mode_oldval=="front"):
@@ -202,14 +205,17 @@ class Drive:
     #     pwm4.ChangeDutyCycle(0)
 
     def current_limiter(self):
-        (i,self.currents[0],self.currents[1]) = self.frontClaw.ReadCurrents()
-        (i,self.currents[2],self.currents[3]) = self.rearClaw.ReadCurrents()
+        (i,self.currents[0],self.currents[1]) = self.rightClaw.ReadCurrents()
+        (i,self.currents[2],self.currents[3]) = self.leftClaw.ReadCurrents()
         for i in range(4):
-            if(int(self.currents[i]) > self.current_threshold):
+            if(self.currents[i] > self.current_threshold):
                 self.stop()
                 return True
-        return False        
+        return False
 
+    def update_current(self):        
+        (i,self.currents[0],self.currents[1]) = self.rightClaw.ReadCurrents()
+        (i,self.currents[2],self.currents[3]) = self.leftClaw.ReadCurrents()
 #---------------------------------------------------                
 
 
